@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+  <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y9QXHXWG4F"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Y9QXHXWG4F');
+</script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>UrbanMov AI - Puebla</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body, html {
+    width: 100%; height: 100%;
+    font-family: 'Segoe UI', Roboto, sans-serif;
+    background: #f0f2f5; overflow: hidden;
+}
+#chat-app { display: flex; flex-direction: column; height: 100vh; width: 100%; }
+
+/* HEADER */
+.header {
+    background: #002e5d;
+    color: white;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.header img { width: 32px; height: 32px; object-fit: contain; border-radius: 50%; }
+.header-info { display: flex; flex-direction: column; }
+.header-nombre { font-weight: 800; font-size: 16px; line-height: 1.2; }
+.header-estado { font-size: 12px; color: #90caf9; }
+
+/* CHAT */
+#chat-container {
+    flex: 1; overflow-y: auto; padding: 16px;
+    display: flex; flex-direction: column; gap: 8px;
+    background: #f0f2f5;
+}
+.msg {
+    padding: 10px 14px; border-radius: 18px;
+    max-width: 80%; font-size: 15px; line-height: 1.5;
+    word-wrap: break-word;
+}
+.user {
+    align-self: flex-end;
+    background: #0057ff;
+    color: white;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+.bot {
+    align-self: flex-start;
+    background: white;
+    color: #111;
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* INPUT */
+.input-bar {
+    padding: 10px 12px;
+    background: #f0f2f5;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    border-top: 1px solid #e0e0e0;
+}
+.input-bar input {
+    flex: 1; padding: 12px 18px;
+    border-radius: 25px;
+    border: none;
+    background: white;
+    font-size: 15px;
+    outline: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.input-bar button {
+    background: #0057ff; color: white;
+    border: none; width: 46px; height: 46px;
+    border-radius: 50%; cursor: pointer;
+    font-size: 18px;
+    box-shadow: 0 2px 8px rgba(0,87,255,0.4);
+    display: flex; align-items: center; justify-content: center;
+}
+    </style>
+</head>
+<body>
+
+    <div id="chat-app">
+<div class="header">
+    <img src="Urban.png">
+    <div class="header-info">
+        <span class="header-nombre">Urban<span style="color:#00c6ff;">Mov</span> AI</span>
+        <span class="header-estado">🟢 En línea · Puebla</span>
+    </div>
+</div>
+        <div id="chat-container">
+<div class="msg bot">¡Hola! 👋 Soy el asistente de <b>UrbanMov</b>. Pregúntame por rutas, horarios o cómo llegar a tu destino en Puebla.</div>
+        </div>
+        <div class="input-bar">
+            <input type="text" id="user-input" placeholder="Ej: Enséñame la ruta Azteca" autocomplete="off">
+            <button onclick="enviarMensaje()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <script>
+ // 1. CONFIGURACIÓN FIREBASE (Mantén tus llaves aquí)
+const firebaseConfig = {
+    apiKey: "AIzaSyD9BM3GgPH0Fpta5AOv0gzpTZ0RJDepE-k", // Tu API Key
+    authDomain: "movitransporte-puebla.firebaseapp.com",
+    databaseURL: "https://movitransporte-puebla-default-rtdb.firebaseio.com", // ¡ESTA ES LA MÁS IMPORTANTE!
+    projectId: "movitransporte-puebla",
+    storageBucket: "movitransporte-puebla.firebasestorage.app",
+    messagingSenderId: "1026517136643",
+    appId: "1:1026517136643:web:595273b5f87b2a5228a536"
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const db = firebase.database();
+
+// 2. FUNCIÓN PARA ENVIAR FEEDBACK
+function enviarFeedback() {
+    const nombre = document.getElementById('fb-nombre').value;
+    const comentario = document.getElementById('fb-comentario').value;
+    if (!nombre || !comentario) return alert("Llena ambos campos");
+
+    db.ref('observaciones').push({
+        usuario: nombre,
+        observacion: comentario,
+        fecha: new Date().toLocaleString()
+    }).then(() => {
+        alert("¡Sugerencia enviada a Carlos!");
+        document.getElementById('fb-nombre').value = "";
+        document.getElementById('fb-comentario').value = "";
+    });
+}
+
+// 3. FUNCIÓN PRINCIPAL DE LA IA
+async function enviarMensaje() {
+    const input = document.getElementById("user-input");
+    const container = document.getElementById("chat-container");
+    const texto = input.value.trim();
+    if (!texto) return;
+
+    const idTemp = "msg-" + Date.now();
+    container.innerHTML += `<div class="msg user"><p>${texto}</p></div>`;
+container.innerHTML += `<div class="msg bot" id="${idTemp}"><p><i>UrbanMov pensando...</i></p></div>`;
+    input.value = "";
+    container.scrollTop = container.scrollHeight;
+
+try {
+    // Contexto de rutas de Puebla para la IA
+    const contextoRutas = `
+    Eres el asistente de UrbanMov, una app de transporte urbano de Puebla, México.
+    Conoces estas rutas:
+    - Ruta 68B: Va de Galaxia/La Resurrección hasta el Centro y 11 Norte. Duración ~100 min, pasa cada 10 min, opera 6am-9:30pm.
+    - Ruta Azteca: Va de Encinar hasta La Noria pasando por Bosques Amalucan y Gardenias. Duración ~125 min, pasa cada 7 min, opera 6am-10pm.
+    - Ruta 10: Recorre gran parte de la ciudad. Duración ~147 min, pasa cada 10 min, opera 6am-10pm.
+    - Ruta 72: Va de Villa Deportiva a Misiones. Duración ~90 min, pasa cada 8 min, opera 6am-10pm.
+    - Ruta 33: Va de Héroes al Centro por San Antonio. Duración ~90 min, pasa cada 10 min, opera 6am-10pm.
+    - Ruta 4: Va de Valsequillo al Centro. Duración ~52 min, pasa cada 12 min, opera 6am-9:30pm.
+    - CAPU-Dorada: Va de CAPU a Plaza Dorada por Blvd 5 de Mayo. Duración ~35 min, pasa cada 10 min.
+    Horarios pico: 7:30-9am y 6-8pm, puede haber retrasos de hasta 30 min.
+    Responde siempre en español, de forma amable y concisa.
+    IMPORTANTE: Si el usuario pregunta por una ruta específica, al final de tu respuesta escribe exactamente en una línea nueva: RUTA_KEY:68B o RUTA_KEY:Azteca o RUTA_KEY:10 o RUTA_KEY:72 o RUTA_KEY:33 o RUTA_KEY:4 o RUTA_KEY:CAPU-Dorada según corresponda. Solo escribe esto si mencionas una ruta específica.
+    `;
+
+const k1 = "gsk_XUKmTDXhDGcEDRKuv9mj";
+const k2 = "WGdyb3FYNW148n4hTqwIwAb3SZKbnuX3";
+const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+        "Authorization": "Bearer " + k1 + k2,
+        "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+        model: "meta-llama/llama-4-scout-17b-16e-instruct",
+        messages: [
+            { role: "system", content: contextoRutas },
+            { role: "user", content: texto }
+        ]
+    })
+});
+
+    const data = await response.json();
+const textoRespuesta = data.choices[0].message.content;
+const rutaMatch = textoRespuesta.match(/RUTA_KEY:(\S+)/);
+const respuestaLimpia = textoRespuesta.replace(/RUTA_KEY:\S+/g, '').trim();
+
+let botonRuta = '';
+if (rutaMatch) {
+    const rutaKey = rutaMatch[1];
+    botonRuta = `<a href="mapa.html?ruta=${rutaKey}" style="display:block;margin-top:10px;background:#0057ff;color:white;padding:10px 14px;border-radius:10px;text-decoration:none;font-weight:700;text-align:center;">🗺️ Ver ruta en el mapa</a>`;
+}
+document.getElementById(idTemp).innerHTML = `<p>${respuestaLimpia}</p>${botonRuta}`;
+
+} catch (e) {
+    document.getElementById(idTemp).innerHTML = "<p>Error de conexión. Reintenta.</p>";
+}
+container.scrollTop = container.scrollHeight
+}
+
+// Escuchar el Enter
+document.getElementById('user-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') enviarMensaje();
+});
+    </script>
+    <div style="padding: 20px; background: #e3f2fd; border-top: 2px solid #1e88e5; margin-top: 20px;">
+    <h4 style="color: #1e88e5; margin-bottom: 10px;"></h4>
+    <input type="text" id="fb-nombre" placeholder="Tu nombre" style="width: 100%; padding: 10px; margin-bottom: 5px;">
+    <textarea id="fb-comentario" placeholder="¿Qué rutas faltan? Danos tus ideas..." style="width: 100%; padding: 10px; height: 60px;"></textarea>
+    <button onclick="enviarFeedback()" style="width: 100%; background: #1e88e5; color: white; border: none; padding: 10px; font-weight: bold; cursor: pointer;">Enviar a Carlos</button>
+</div>
+
+</body>
+</html>

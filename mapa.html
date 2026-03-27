@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="es">
+  <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y9QXHXWG4F"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Y9QXHXWG4F');
+</script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>UrbanMov - Inteligencia en Movilidad</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        :root { --blue: #002e5d; --orange: #ff5a00; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #222; }
+        
+        #map { width: 100%; height: 100%; position: absolute; z-index: 1; }
+
+        /* UI SUPERIOR */
+.header { position: absolute; top: 0; width: 100%; z-index: 1000; background: white; padding: 10px 16px; color: #002e5d; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+        .profile-btn { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--orange); background: #fff url('https://ui-avatars.com/api/?name=User&background=00c6ff&color=fff') center/cover; cursor: pointer; }
+
+.search-box { position: absolute; top: 62px; left: 10px; right: 10px; z-index: 1000; background: white; border-radius: 14px; padding: 10px 14px; display: flex; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.12); border: 1.5px solid #e8e8e8; }
+.search-box input { border: none; width: 100%; outline: none; font-size: 15px; flex: 1; margin: 0 10px; font-weight: 600; color: #222; background: transparent; }
+.btn-ir { background: linear-gradient(135deg, #0057ff, #00c6ff); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 800; cursor: pointer; font-size: 14px; letter-spacing: 0.5px; }
+
+        /* MENÚ LATERAL */
+        #sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: white; z-index: 3000; transition: 0.4s; box-shadow: 5px 0 20px rgba(0,0,0,0.4); }
+        #sidebar.active { left: 0; }
+.menu-header { background: linear-gradient(135deg, #002e5d, #0057ff); color: white; padding: 30px 20px; display: flex; align-items: center; gap: 12px; }
+        .menu-item { padding: 15px 20px; border-bottom: 1px solid #eee; color: var(--blue); font-weight: bold; cursor: pointer; }
+
+        /* REGISTRO REAL (MODAL) */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 4000; display: none; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+        .register-card { background: white; width: 85%; max-width: 380px; padding: 25px; border-radius: 20px; text-align: center; }
+        .register-card input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; }
+
+        .overlay-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2500; display: none; }
+        .overlay-bg.active { display: block; }
+        /* SUGERENCIAS DEL BUSCADOR */
+#sugerencias { position: fixed; top: 115px; left: 10px; right: 10px; z-index: 9999; background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: none; max-height: 200px; overflow-y: auto; }
+.sug-item { padding: 12px 15px; border-bottom: 1px solid #eee; cursor: pointer; font-weight: bold; color: #002e5d; }
+.sug-item:hover { background: #f0f4ff; }
+.sug-item span { font-size: 12px; color: #888; font-weight: normal; }
+
+/* PANEL DE REPORTE */
+#panel-reporte { position: fixed; bottom: -600px; left: 0; right: 0; background: white; border-radius: 20px 20px 0 0; padding: 20px; z-index: 3000; transition: 0.4s; box-shadow: 0 -4px 20px rgba(0,0,0,0.2); }
+#panel-reporte.active { bottom: 0; }
+#panel-reporte h3 { color: #002e5d; margin-bottom: 15px; }
+.tipo-reporte { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+.tipo-btn { padding: 8px 14px; border: 2px solid #ddd; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 13px; background: white; }
+.tipo-btn.selected { border-color: #ff5a00; color: #ff5a00; }
+.tipo-btn:has(🟢) { border-color: #43A047; }
+.tipo-btn:has(🟡) { border-color: #FB8C00; }
+.tipo-btn:has(🔴) { border-color: #E53935; }
+#btn-enviar-reporte { width: 100%; background: #ff5a00; color: white; border: none; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 15px; cursor: pointer; }
+
+/* CAMIÓN ANIMADO */
+.bus-icon-ani { background: #002e5d; color: white; border-radius: 8px; padding: 3px 6px; font-size: 13px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4); white-space: nowrap; }
+
+/* INFO CARD DE RUTA */
+#info-ruta { position: absolute; bottom: 20px; left: 10px; right: 10px; z-index: 1000; background: #002e5d; color: white; border-radius: 14px; padding: 14px; display: none; }
+#info-ruta h4 { margin: 0 0 5px; font-size: 16px; }
+#info-ruta p { margin: 0; font-size: 13px; color: #aac4e8; }
+/* PANEL MINIMIZADO */
+#panel-reporte.minimizado {
+    bottom: 0;
+    height: 50px;
+    overflow: hidden;
+    border-radius: 20px 20px 0 0;
+}
+#panel-reporte.minimizado::before {
+    content: "👆 Toca el mapa para marcar el punto — luego regresa aquí";
+    display: block;
+    text-align: center;
+    font-size: 13px;
+    font-weight: bold;
+    color: #ff5a00;
+    padding: 14px;
+}
+/* CHAT COMUNITARIO */
+#panel-chat { position: fixed; bottom: -700px; left: 0; right: 0; background: white; border-radius: 20px 20px 0 0; padding: 0; z-index: 3000; transition: 0.4s; box-shadow: 0 -4px 20px rgba(0,0,0,0.2); height: 75vh; display: flex; flex-direction: column; }
+#panel-chat.active { bottom: 0; display: flex; }
+#chat-header { background: linear-gradient(135deg, #002e5d, #0057ff); color: white; padding: 14px 20px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; }
+#chat-header h3 { margin: 0; font-size: 16px; }
+#chat-header span { font-size: 12px; opacity: 0.8; }
+#chat-mensajes { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: #f0f2f5; }
+.chat-msg { background: white; border-radius: 12px; padding: 8px 12px; max-width: 85%; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+.chat-msg .chat-autor { font-size: 12px; font-weight: 800; color: #0057ff; margin-bottom: 2px; }
+.chat-msg .chat-texto { font-size: 14px; color: #222; }
+.chat-msg .chat-hora { font-size: 11px; color: #aaa; margin-top: 2px; text-align: right; }
+#chat-input-bar { padding: 10px 12px; background: white; display: flex; gap: 8px; align-items: center; border-top: 1px solid #eee; }
+#chat-input-bar input { flex: 1; padding: 10px 16px; border-radius: 25px; border: 1px solid #ddd; font-size: 14px; outline: none; background: #f0f2f5; }
+#chat-input-bar button { background: #0057ff; color: white; border: none; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; font-size: 16px; }
+.insignia-item { padding:10px 14px; border-radius:10px; background:#f9f9f9; border:2px solid #eee; font-weight:600; font-size:14px; color:#aaa; }
+.insignia-item.desbloqueada { background:#f0f4ff; border-color:#0057ff; color:#002e5d; }
+.insignia-item.activa { background:#002e5d; border-color:#002e5d; color:white; }
+/* ENCUESTA RÁPIDA */
+#encuesta-flotante { position: fixed; bottom: 90px; left: 10px; right: 10px; background: white; border-radius: 16px; padding: 14px 16px; z-index: 2000; box-shadow: 0 4px 20px rgba(0,0,0,0.15); display: none; }
+#encuesta-flotante p { font-weight: 700; color: #002e5d; font-size: 14px; margin-bottom: 10px; }
+.enc-btns { display: flex; gap: 8px; }
+.enc-btn { flex: 1; padding: 10px; border: none; border-radius: 10px; font-size: 18px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+    <div id="overlay-bg" class="overlay-bg" onclick="cerrarTodo()"></div>
+
+<div class="header">
+    <i class="fas fa-bars" onclick="abrirMenu()" style="font-size:22px; cursor:pointer; color:#002e5d;"></i>
+    <div style="display:flex; align-items:center; gap:8px;">
+        <img src="Urban.png" style="width:28px; height:28px; object-fit:contain;">
+        <span style="font-weight:900; font-size:18px; color:#002e5d;">Urban<span style="color:#00c6ff;:;">Mov</span></span>
+    </div>
+<div class="profile-btn" onclick="abrirPerfil()"></div>
+</div>
+<div class="search-box">
+    <i class="fas fa-search" style="color:#aaa; font-size:16px;"></i>
+    <input type="text" id="search-input" placeholder="¿A dónde vas? Busca tu ruta...">
+    <button class="btn-ir" onclick="buscarRuta()">Ir</button>
+</div>
+
+    <div id="sidebar">
+      <div class="menu-header">
+    <img src="Urban.png" style="width:36px; height:36px; object-fit:contain;">
+    <div>
+        <div style="font-weight:900; font-size:18px;">Urban<span style="color:#00c6ff;:;">Mov</span></div>
+        <div style="font-size:12px; opacity:0.8;">Puebla, México</div>
+    </div>
+</div>
+        <div class="menu-item" onclick="location.reload()">Reiniciar Mapa</div>
+        <div class="menu-item" onclick="verTodasLasRutas()">🗺️ Ver todas las rutas</div>
+<div class="menu-item" onclick="abrirReporte()">🚨 Reportar incidente</div>
+<div class="menu-item" onclick="location.href='ia.html'">🤖 Asistente IA</div>
+<div class="menu-item" onclick="abrirChat()">💬 Chat comunitario</div>
+<div class="menu-item" onclick="abrirActualizaciones()">📋 Actualizaciones</div>
+<div class="menu-item" onclick="abrirPrivacidad()">🔒 Privacidad</div>
+<div class="menu-item" style="color:#aaa; cursor:default;">
+    🚌 Capacidad del camión <span style="background:#ff5a00;color:white;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:5px;">Próximamente</span>
+</div>
+<div class="menu-item" style="color:#aaa; cursor:default;">
+    🦺 Caminata Segura <span style="background:#ff5a00;color:white;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:5px;">Próximamente</span>
+</div>
+<div class="menu-item" style="color:#aaa; cursor:default;">
+    🔔 Alerta de Ruta Cercana <span style="background:#ff5a00;color:white;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:5px;">Próximamente</span>
+</div>
+<div class="menu-item" style="color:#aaa; cursor:default;">
+    🛡️ SafeMove <span style="background:#ff5a00;color:white;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:5px;">Próximamente</span>
+</div>
+        <div class="menu-item" onclick="cerrarTodo()">Cerrar</div>
+    <div id="modal-reg" class="modal-overlay">
+        <div class="register-card">
+            <h2 style="color:var(--blue); margin-bottom:15px;">Crear Cuenta</h2>
+            <input type="text" placeholder="Nombre">
+            <input type="email" placeholder="Correo">
+            <input type="password" placeholder="Contraseña">
+            <button onclick="cerrarTodo()" style="width:100%; background:var(--blue); color:white; padding:15px; border:none; border-radius:10px; font-weight:bold;">REGISTRARSE</button>
+        </div>
+    </div>
+<!-- Sugerencias del buscador -->
+<div id="sugerencias"></div>
+
+<!-- Info card de ruta activa -->
+<div id="info-ruta">
+    <h4 id="info-nombre"></h4>
+    <p id="info-paradas"></p>
+</div>
+
+<!-- Panel de reportes -->
+<div id="panel-reporte">
+    <h3>🚨 Reportar incidente</h3>
+
+    <p style="font-size:13px;color:#666;margin-bottom:8px;">1️⃣ Selecciona la ruta</p>
+    <select id="select-ruta-reporte" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;margin-bottom:12px;font-size:14px;color:#002e5d;font-weight:bold;">
+        <option value="">— Elige la ruta afectada —</option>
+    </select>
+
+   <p style="font-size:13px;color:#666;margin-bottom:8px;">2️⃣ Toca el mapa en el punto exacto</p>
+<div id="pin-status" style="background:#f0f4ff;border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px;color:#002e5d;text-align:center;">
+    📍 Aún no has marcado el punto
+</div>
+
+<button onclick="minimizarParaMarcar()" style="width:100%;background:#002e5d;color:white;border:none;padding:10px;border-radius:8px;font-weight:bold;margin-bottom:12px;cursor:pointer;">
+    👆 Marcar punto en el mapa
+</button>
+
+    <p style="font-size:13px;color:#666;margin-bottom:8px;">3️⃣ Tipo de incidente</p>
+    <div class="tipo-reporte">
+        <button class="tipo-btn" onclick="seleccionarTipo(this)">🔪 Robo</button>
+        <button class="tipo-btn" onclick="seleccionarTipo(this)">💥 Accidente</button>
+        <button class="tipo-btn" onclick="seleccionarTipo(this)">⏰ Atraso</button>
+        <button class="tipo-btn" onclick="seleccionarTipo(this)">🚧 Desvío</button>
+        <button class="tipo-btn" onclick="seleccionarTipo(this)">👮 Revisión</button>
+        <button class="tipo-btn" onclick="seleccionarTipo(this)">🟢 Vacío</button>
+<button class="tipo-btn" onclick="seleccionarTipo(this)">🟡 Medio lleno</button>
+<button class="tipo-btn" onclick="seleccionarTipo(this)">🔴 Lleno</button>
+    </div>
+    <button id="btn-enviar-reporte" onclick="enviarReporte()">Enviar Reporte</button>
+    <button onclick="cerrarReporte()" style="width:100%;margin-top:8px;background:none;border:none;color:#aaa;cursor:pointer;">Cancelar</button>
+</div>
+<!-- Chat Comunitario -->
+<div id="panel-chat">
+    <div id="chat-header">
+        <div>
+            <h3>💬 Chat UrbanMov</h3>
+            <span>Chat general · se reinicia cada día</span>
+        </div>
+        <i class="fas fa-times" onclick="cerrarChat()" style="cursor:pointer; font-size:20px;"></i>
+    </div>
+    <div id="chat-mensajes"></div>
+    <div id="chat-input-bar">
+        <input type="text" id="chat-apodo" placeholder="Tu nombre" style="max-width:90px; flex:none;">
+        <input type="text" id="chat-texto" placeholder="Escribe un mensaje...">
+        <button onclick="enviarChatMensaje()"><i class="fas fa-paper-plane"></i></button>
+    </div>
+</div>
+<!-- Panel Actualizaciones -->
+<div id="panel-actualizaciones" style="position:fixed;bottom:-100%;left:0;right:0;background:white;border-radius:20px 20px 0 0;padding:0;z-index:3000;transition:0.4s;box-shadow:0 -4px 20px rgba(0,0,0,0.2);height:80vh;overflow-y:auto;">
+    <div style="background:linear-gradient(135deg,#002e5d,#0057ff);color:white;padding:16px 20px;border-radius:20px 20px 0 0;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;">
+        <div><h3 style="margin:0;font-size:16px;">📋 Actualizaciones</h3><span style="font-size:12px;opacity:0.8;">Historial de mejoras</span></div>
+        <i class="fas fa-times" onclick="cerrarActualizaciones()" style="cursor:pointer;font-size:20px;"></i>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        <div style="border-left:3px solid #0057ff;padding:10px 14px;background:#f0f4ff;border-radius:0 10px 10px 0;">
+            <div style="font-weight:800;color:#002e5d;font-size:14px;">v1.3 — Chat Comunitario</div>
+            <div style="font-size:12px;color:#666;margin-top:4px;">Se agregó chat en tiempo real para todos los usuarios. Se reinicia cada día automáticamente.</div>
+            <div style="font-size:11px;color:#aaa;margin-top:4px;">Marzo 2026</div>
+        </div>
+        <div style="border-left:3px solid #0057ff;padding:10px 14px;background:#f0f4ff;border-radius:0 10px 10px 0;">
+            <div style="font-weight:800;color:#002e5d;font-size:14px;">v1.2 — Reportes en Tiempo Real</div>
+            <div style="font-size:12px;color:#666;margin-top:4px;">Los usuarios pueden reportar robos, accidentes y atrasos. Aparecen al instante en el mapa de todos.</div>
+            <div style="font-size:11px;color:#aaa;margin-top:4px;">Marzo 2026</div>
+        </div>
+        <div style="border-left:3px solid #0057ff;padding:10px 14px;background:#f0f4ff;border-radius:0 10px 10px 0;">
+            <div style="font-weight:800;color:#002e5d;font-size:14px;">v1.1 — Asistente IA</div>
+            <div style="font-size:12px;color:#666;margin-top:4px;">Chatbot con inteligencia artificial que responde preguntas sobre rutas, horarios y cómo llegar a tu destino.</div>
+            <div style="font-size:11px;color:#aaa;margin-top:4px;">Marzo 2026</div>
+        </div>
+        <div style="border-left:3px solid #0057ff;padding:10px 14px;background:#f0f4ff;border-radius:0 10px 10px 0;">
+            <div style="font-weight:800;color:#002e5d;font-size:14px;">v1.0 — Lanzamiento</div>
+            <div style="font-size:12px;color:#666;margin-top:4px;">Mapa de rutas de Puebla con buscador, rutas reales trazadas y simulación de camiones por horario.</div>
+            <div style="font-size:11px;color:#aaa;margin-top:4px;">Marzo 2026</div>
+        </div>
+    </div>
+</div>
+<!-- Panel Privacidad -->
+<div id="panel-privacidad" style="position:fixed;bottom:-100%;left:0;right:0;background:white;border-radius:20px 20px 0 0;padding:0;z-index:3000;transition:0.4s;box-shadow:0 -4px 20px rgba(0,0,0,0.2);height:80vh;overflow-y:auto;">
+    <div style="background:linear-gradient(135deg,#002e5d,#0057ff);color:white;padding:16px 20px;border-radius:20px 20px 0 0;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;">
+        <div><h3 style="margin:0;font-size:16px;">🔒 Privacidad</h3><span style="font-size:12px;opacity:0.8;">¿Qué datos usamos?</span></div>
+        <i class="fas fa-times" onclick="cerrarPrivacidad()" style="cursor:pointer;font-size:20px;"></i>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:16px;font-size:14px;color:#333;line-height:1.6;">
+        <p>En <b>UrbanMov</b> nos tomamos tu privacidad en serio. Aquí te explicamos qué información recopilamos y para qué la usamos.</p>
+        <div>
+            <div style="font-weight:800;color:#002e5d;margin-bottom:6px;"> Ubicación</div>
+            <p>Solo se usa para mostrarte en el mapa. No la almacenamos ni la compartimos con terceros.</p>
+        </div>
+        <div>
+            <div style="font-weight:800;color:#002e5d;margin-bottom:6px;"> Chat y Reportes</div>
+            <p>Los mensajes del chat y reportes son públicos y visibles para todos los usuarios. No publiques información personal.</p>
+        </div>
+        <div>
+            <div style="font-weight:800;color:#002e5d;margin-bottom:6px;"> Estadísticas</div>
+            <p>Usamos Google Analytics para contar visitas de forma anónima. No recopilamos nombres ni correos.</p>
+        </div>
+        <div>
+            <div style="font-weight:800;color:#002e5d;margin-bottom:6px;"> Tu nombre en el chat</div>
+            <p>El nombre que escribes en el chat se guarda únicamente en tu dispositivo. UrbanMov no tiene acceso a él.</p>
+        </div>
+        <p style="color:#aaa;font-size:12px;">UrbanMov · Puebla, México · 2026</p>
+    </div>
+</div>
+<!-- Panel Perfil / UMCoins -->
+<div id="panel-perfil" style="position:fixed;bottom:-100%;left:0;right:0;background:white;border-radius:20px 20px 0 0;padding:0;z-index:3000;transition:0.4s;box-shadow:0 -4px 20px rgba(0,0,0,0.2);height:85vh;overflow-y:auto;">
+    <div style="background:linear-gradient(135deg,#002e5d,#0057ff);color:white;padding:16px 20px;border-radius:20px 20px 0 0;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;">
+        <div><h3 style="margin:0;font-size:16px;">👤 Mi Perfil</h3><span style="font-size:12px;opacity:0.8;">Tu progreso en UrbanMov</span></div>
+        <i class="fas fa-times" onclick="cerrarPerfil()" style="cursor:pointer;font-size:20px;"></i>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Nombre y monedas -->
+        <div style="background:#f0f4ff;border-radius:14px;padding:16px;text-align:center;">
+            <div style="font-size:48px;margin-bottom:8px;" id="perfil-insignia-icon">🌱</div>
+            <div style="font-weight:900;font-size:18px;color:#002e5d;" id="perfil-nombre">Cargando...</div>
+            <div style="font-size:14px;color:#0057ff;font-weight:700;margin-top:4px;" id="perfil-insignia-nombre">Pasajero Nuevo</div>
+            <div style="margin-top:12px;background:#002e5d;color:white;border-radius:20px;padding:8px 20px;display:inline-block;font-weight:800;font-size:16px;">
+                🪙 <span id="perfil-coins">0</span> UMCoins
+            </div>
+        </div>
+
+        <!-- Barra de progreso -->
+        <div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:#666;margin-bottom:6px;">
+                <span>Progreso a siguiente insignia</span>
+                <span id="perfil-progreso-texto">0/50</span>
+            </div>
+            <div style="background:#eee;border-radius:10px;height:10px;">
+                <div id="perfil-barra" style="background:linear-gradient(90deg,#0057ff,#00c6ff);height:10px;border-radius:10px;width:0%;transition:0.5s;"></div>
+            </div>
+        </div>
+
+        <!-- Insignias -->
+        <div>
+            <div style="font-weight:800;color:#002e5d;margin-bottom:10px;font-size:15px;">Insignias</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div class="insignia-item" id="ins-1">🌱 Pasajero Nuevo <span style="float:right;font-size:12px;color:#aaa;">0 coins</span></div>
+                <div class="insignia-item" id="ins-2">🚌 Pasajero Regular <span style="float:right;font-size:12px;color:#aaa;">50 coins</span></div>
+                <div class="insignia-item" id="ins-3">⭐ Colaborador <span style="float:right;font-size:12px;color:#aaa;">150 coins · Cupones</span></div>
+                <div class="insignia-item" id="ins-4">🏆 Guía de Puebla <span style="float:right;font-size:12px;color:#aaa;">300 coins · Descuentos</span></div>
+                <div class="insignia-item" id="ins-5">👑 Pasajero VIP <span style="float:right;font-size:12px;color:#aaa;">500 coins · Canjear $$$</span></div>
+            </div>
+        </div>
+
+        <!-- Cómo ganar -->
+        <div style="background:#fff3e0;border-radius:12px;padding:14px;">
+            <div style="font-weight:800;color:#e65100;margin-bottom:8px;">🪙 ¿Cómo ganar UMCoins?</div>
+            <div style="font-size:13px;color:#555;display:flex;flex-direction:column;gap:4px;">
+                <div>📅 Abrir la app cada día → <b>+5</b></div>
+                <div>🔍 Buscar una ruta → <b>+2</b></div>
+                <div>💬 Mensaje en el chat → <b>+3</b></div>
+                <div>🚨 Reportar incidente → <b>+10</b></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+<!-- Encuesta Rápida -->
+<div id="encuesta-flotante">
+    <p>¿Cómo viene tu ruta hoy? <span id="encuesta-ruta-nombre"></span></p>
+    <div class="enc-btns">
+        <button class="enc-btn" style="background:#e8f5e9;" onclick="responderEncuesta('🟢 Bien')">🟢 Bien</button>
+        <button class="enc-btn" style="background:#fff3e0;" onclick="responderEncuesta('🟡 Regular')">🟡 Regular</button>
+        <button class="enc-btn" style="background:#ffebee;" onclick="responderEncuesta('🔴 Mal')">🔴 Mal</button>
+    </div>
+    <button onclick="cerrarEncuesta()" style="width:100%;margin-top:8px;background:none;border:none;color:#aaa;font-size:12px;cursor:pointer;">Omitir</button>
+</div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+      const firebaseConfig = {
+    apiKey: "AIzaSyD9BM3GgPH0Fpta5AOv0gzpTZ0RJDepE-k",
+    authDomain: "movitransporte-puebla.firebaseapp.com",
+    databaseURL: "https://movitransporte-puebla-default-rtdb.firebaseio.com",
+    projectId: "movitransporte-puebla",
+    storageBucket: "movitransporte-puebla.firebasestorage.app",
+    messagingSenderId: "1026517136643",
+    appId: "1:1026517136643:web:595273b5f87b2a5228a536"
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const db = firebase.database();
+var map, lineaActiva, busMarker, busInterval;
+var tipoReporteSeleccionado = "";
+
+var pinReporte = null;
+var modoReporte = false;
+var miUbicacionMarker = null;
+var miUbicacionId = 'user_' + Math.random().toString(36).substr(2, 9);
+// BASE DE DATOS DE RUTAS — agrega aquí todas las que quieras
+const RUTAS = {
+    "68B": {
+        nombre: "Ruta 68B — SantaMaria xonacatepex → Centro",
+        color: "#1E88E5",
+        paradas: "SantaMaria xonacatepex → La Resurrección → Centro → 11 Norte",
+        duracion: 100,    // minutos promedio
+        frecuencia: 10,   // cada cuántos minutos sale uno
+        inicioOp: 6,      // hora de inicio (6am)
+        finOp: 21.5,      // hora de fin (21:30)
+        coords: [
+    [19.0689, -98.1170],
+    [19.0560, -98.1351],
+    [19.0571, -98.1397],
+    [19.0563, -98.1399],
+    [19.0558, -98.1407],
+    [19.0555, -98.1415],
+    [19.0545, -98.1439],
+    [19.0544, -98.1437],
+    [19.0542, -98.1432],
+    [19.0522, -98.1439],
+    [19.0508, -98.1447],
+    [19.0504, -98.1448],
+    [19.0505, -98.1450],
+    [19.0509, -98.1452],
+    [19.0511, -98.1454],
+    [19.0512, -98.1470],
+    [19.0512, -98.1472],
+    [19.0512, -98.1475],
+    [19.0502, -98.1499],
+    [19.0502, -98.1501],
+    [19.0506, -98.1509],
+    [19.0508, -98.1510],
+    [19.0493, -98.1534],
+    [19.0493, -98.1536],
+    [19.0498, -98.1540],
+    [19.0506, -98.1547],
+    [19.0519, -98.1555],
+    [19.0541, -98.1571],
+    [19.0542, -98.1574],
+    [19.0553, -98.1583],
+    [19.0552, -98.1586],
+    [19.0497, -98.1626],
+    [19.0515, -98.1659],
+    [19.0504, -98.1670],
+    [19.0510, -98.1674],
+    [19.0511, -98.1675],
+    [19.0505, -98.1681],
+    [19.0474, -98.1718],
+    [19.0459, -98.1792],
+    [19.0448, -98.1834],
+    [19.0444, -98.1859],
+    [19.0453, -98.1901],
+    [19.0457, -98.1905],
+    [19.0459, -98.1910],
+    [19.0459, -98.1917],
+    [19.0513, -98.2025],
+    [19.0529, -98.2015],
+    [19.0482, -98.1925],
+    [19.0499, -98.1915],
+    [19.0486, -98.1888],
+    [19.0481, -98.1884],
+    [19.0479, -98.1880],
+    [19.0461, -98.1824],
+    [19.0457, -98.1819],
+    [19.0453, -98.1817],
+    [19.0458, -98.1794],
+    [19.0473, -98.1718],
+    [19.0505, -98.1675],
+    [19.0496, -98.1666]
+]
+    },
+    "Azteca": {
+        nombre: "Ruta Azteca — Encinar → La Noria",
+        color: "#43A047",
+        paradas: "Encinar → Bosques Amalucan → Gardenias → La Noria",
+        duracion: 125,
+        frecuencia: 7,
+        inicioOp: 6,
+        finOp: 22,
+        coords: [
+            [19.0512, -98.1325],[19.0718, -98.1314],[19.0738, -98.1291],[19.0719, -98.1268]
+        ]
+    },
+    "1": {
+        nombre: "Ruta 1 — Recorrido Ciudad",
+        color: "#FB8C00",
+        paradas: "Varios ramales — recorre gran parte de la ciudad",
+        duracion: 147,
+        frecuencia: 10,
+        inicioOp: 6,
+        finOp: 22,
+        coords: [
+    [19.0509, -98.1472],
+    [19.0423, -98.1474],
+    [19.0421, -98.1474],
+    [19.0420, -98.1475],
+    [19.0420, -98.1491],
+    [19.0428, -98.1543],
+    [19.0451, -98.1598],
+    [19.0479, -98.1646],
+    [19.0472, -98.1667],
+    [19.0451, -98.1723],
+    [19.0449, -98.1748],
+    [19.0440, -98.1791],
+    [19.0454, -98.1796],
+    [19.0458, -98.1794],
+    [19.0445, -98.1847],
+    [19.0444, -98.1859],
+    [19.0453, -98.1900],
+    [19.0465, -98.1915],
+    [19.0475, -98.1930],
+    [19.0482, -98.1925],
+    [19.0521, -98.2000],
+    [19.0551, -98.2059],
+    [19.0514, -98.2079],
+    [19.0459, -98.2111],
+    [19.0482, -98.2158],
+    [19.0505, -98.2144],
+    [19.0489, -98.2113],
+    [19.0521, -98.2093],
+    [19.0491, -98.2038],
+    [19.0514, -98.2024],
+    [19.0468, -98.1934],
+    [19.0490, -98.1921],
+    [19.0500, -98.1915],
+    [19.0496, -98.1909],
+    [19.0477, -98.1874],
+    [19.0466, -98.1837],
+    [19.0451, -98.1845],
+    [19.0448, -98.1835],
+    [19.0453, -98.1817],
+    [19.0437, -98.1805],
+    [19.0431, -98.1808],
+    [19.0440, -98.1629],
+    [19.0441, -98.1599],
+    [19.0438, -98.1586],
+    [19.0428, -98.1556],
+    [19.0417, -98.1437],
+    [19.0420, -98.1440],
+    [19.0421, -98.1467]
+]
+    },
+    "72": {
+        nombre: "Ruta 72 — Villa Deportiva → Misiones",
+        color: "#8E24AA",
+        paradas: "Villa Deportiva → Centro → Misiones",
+        duracion: 90,
+        frecuencia: 8,
+        inicioOp: 6,
+        finOp: 22,
+        coords: [
+            [19.0600, -98.2100],[19.0500, -98.2000],[19.0400, -98.1900],[19.0300, -98.1800]
+        ]
+    },
+    "33": {
+        nombre: "Ruta 33 — Héroes → Centro",
+        color: "#E53935",
+        paradas: "Héroes → San Antonio → Centro",
+        duracion: 90,
+        frecuencia: 10,
+        inicioOp: 6,
+        finOp: 22,
+        coords: [
+            [19.0650, -98.1800],[19.0550, -98.1900],[19.0450, -98.2000],[19.0350, -98.2050]
+        ]
+    },
+    "4": {
+        nombre: "Ruta 4 — Valsequillo → Centro",
+        color: "#00ACC1",
+        paradas: "Valsequillo → Periférico → Centro",
+        duracion: 52,
+        frecuencia: 12,
+        inicioOp: 6,
+        finOp: 21.5,
+        coords: [
+            [18.9740, -98.1924],[19.0000, -98.2000],[19.0200, -98.2010],[19.0439, -98.1980]
+        ]
+    },
+    "CAPU-Dorada": {
+        nombre: "CAPU → Plaza Dorada",
+        color: "#ff5a00",
+        paradas: "CAPU → China Poblana → Analco → Plaza Dorada",
+        duracion: 35,
+        frecuencia: 10,
+        inicioOp: 6,
+        finOp: 21.5,
+        coords: [
+            [19.0718, -98.2033],[19.0685, -98.2025],[19.0632, -98.2006],
+            [19.0580, -98.1985],[19.0530, -98.1960],[19.0455, -98.1928],
+            [19.0410, -98.1945],[19.0355, -98.1975],[19.0315, -98.2005],[19.0305, -98.2010]
+        ]
+    }
+};
+window.onload = function() {
+    map = L.map('map', { zoomControl: false }).setView([19.0433, -98.2019], 13);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '© CARTO'
+    }).addTo(map);
+    // Activar ruta desde URL si viene de ia.html
+const urlParams = new URLSearchParams(window.location.search);
+const rutaDesdeIA = urlParams.get('ruta');
+if (rutaDesdeIA && RUTAS[rutaDesdeIA]) {
+    setTimeout(() => activarRuta(rutaDesdeIA), 500);
+}
+    // Ubicación del usuario en tiempo real
+if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(function(pos) {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        // Guardar en Firebase
+        db.ref('usuarios_activos/' + miUbicacionId).set({
+            lat: lat, lng: lng,
+            t: Date.now()
+        });
+
+        // Limpiar al cerrar
+        window.addEventListener('beforeunload', () => {
+            db.ref('usuarios_activos/' + miUbicacionId).remove();
+        });
+    }, null, { enableHighAccuracy: true, maximumAge: 10000 });
+}
+
+// Ver usuarios activos en el mapa
+const usuarioMarkers = {};
+db.ref('usuarios_activos').on('value', (snapshot) => {
+    // Limpiar markers viejos
+    Object.keys(usuarioMarkers).forEach(id => {
+        if (!snapshot.child(id).exists() || id === miUbicacionId) {
+            if (usuarioMarkers[id]) map.removeLayer(usuarioMarkers[id]);
+            delete usuarioMarkers[id];
+        }
+    });
+
+    snapshot.forEach((child) => {
+        const u = child.val();
+        const id = child.key;
+        if (id === miUbicacionId) return; // No mostrarte a ti mismo
+
+        // Ignorar ubicaciones de más de 10 minutos
+        if (Date.now() - u.t > 600000) {
+            db.ref('usuarios_activos/' + id).remove();
+            return;
+        }
+
+        const icono = L.divIcon({
+            className: '',
+            html: `<div style="background:#0057ff;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>`,
+            iconSize: [14, 14]
+        });
+
+        if (usuarioMarkers[id]) {
+            usuarioMarkers[id].setLatLng([u.lat, u.lng]);
+        } else {
+            usuarioMarkers[id] = L.marker([u.lat, u.lng], { icon: icono }).addTo(map);
+            usuarioMarkers[id].bindPopup('👤 Usuario activo');
+        }
+    });
+});
+
+    // Escuchar el buscador
+    document.getElementById('search-input').addEventListener('input', mostrarSugerencias);
+// Llenar select de rutas
+const select = document.getElementById('select-ruta-reporte');
+Object.keys(RUTAS).forEach(key => {
+    select.innerHTML += `<option value="${key}">${RUTAS[key].nombre}</option>`;
+});
+
+// Click en mapa para pin de reporte
+map.on('click', function(e) {
+    if (!modoReporte) return;
+    if (pinReporte) map.removeLayer(pinReporte);
+
+    const icono = L.divIcon({
+        className: '',
+        html: `<div style="background:#e53935;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.5);">📍</div>`,
+        iconSize: [36, 36]
+    });
+    pinReporte = L.marker([e.latlng.lat, e.latlng.lng], { icon: icono }).addTo(map);
+
+    // Actualizar status y quitar minimizado
+    document.getElementById('pin-status').innerHTML = `✅ Punto marcado correctamente`;
+    document.getElementById('pin-status').style.background = "#e8f5e9";
+    document.getElementById('pin-status').style.color = "#2e7d32";
+
+    // El panel regresa a tamaño completo automáticamente
+    document.getElementById('panel-reporte').classList.remove('minimizado');
+});
+// Escuchar toque en el mapa para el pin de reporte
+map.on('click', function(e) {
+    if (!modoReporte) return;
+    
+    // Limpiar pin anterior
+    if (pinReporte) map.removeLayer(pinReporte);
+    
+    // Poner pin rojo temporal
+    const icono = L.divIcon({
+        className: '',
+        html: `<div style="background:#e53935;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.5);">📍</div>`,
+        iconSize: [36, 36]
+    });
+    pinReporte = L.marker([e.latlng.lat, e.latlng.lng], { icon: icono }).addTo(map);
+    
+    // Actualizar status
+    document.getElementById('pin-status').innerHTML = 
+        `✅ Punto marcado: ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
+    document.getElementById('pin-status').style.background = "#e8f5e9";
+    document.getElementById('pin-status').style.color = "#2e7d32";
+});
+};
+
+// Escuchar reportes de todos los usuarios en tiempo real
+const reporteMarkers = {};
+
+db.ref('reportes').on('value', (snapshot) => {
+    // Limpiar marcadores viejos
+    Object.values(reporteMarkers).forEach(m => map.removeLayer(m));
+
+    snapshot.forEach((child) => {
+        const r = child.val();
+        const id = child.key;
+
+        const icono = L.divIcon({
+            className: '',
+            html: `<div style="background:#e53935; color:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:16px; border:2px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.4);">⚠️</div>`,
+            iconSize: [32, 32]
+        });
+
+        const marker = L.marker([r.lat, r.lng], { icon: icono }).addTo(map);
+        marker.bindPopup(`
+            <b style="color:#e53935;">${r.tipo}</b><br>
+            📍 ${r.ruta}<br>
+            🕐 ${r.hora} — ${r.fecha}
+        `);
+        reporteMarkers[id] = marker;
+    });
+});
+function mostrarSugerencias() {
+    const q = document.getElementById('search-input').value.toLowerCase();
+    const div = document.getElementById('sugerencias');
+    div.innerHTML = "";
+    if (q.length < 1) { div.style.display = "none"; return; }
+
+    const resultados = Object.keys(RUTAS).filter(k =>
+        k.toLowerCase().includes(q) || RUTAS[k].nombre.toLowerCase().includes(q)
+    );
+
+    if (resultados.length === 0) { div.style.display = "none"; return; }
+
+    resultados.forEach(key => {
+        div.innerHTML += `<div class="sug-item" onclick="activarRuta('${key}')">
+            🚌 ${RUTAS[key].nombre}<br><span>${RUTAS[key].paradas}</span>
+        </div>`;
+    });
+    div.style.display = "block";
+}
+addCoins(2);
+function buscarRuta() {
+    const q = document.getElementById('search-input').value;
+    const key = Object.keys(RUTAS).find(k =>
+        k.toLowerCase() === q.toLowerCase() || RUTAS[k].nombre.toLowerCase().includes(q.toLowerCase())
+    );
+    if (key) activarRuta(key);
+    else alert("Ruta no encontrada. Prueba: 68B, Azteca, CAPU-Dorada");
+}
+function activarRuta(key) {
+    const ruta = RUTAS[key];
+    document.getElementById('sugerencias').style.display = "none";
+    document.getElementById('search-input').value = ruta.nombre;
+
+    // Limpiar ruta anterior
+    if (lineaActiva) map.removeLayer(lineaActiva);
+    if (busMarker) map.removeLayer(busMarker);
+    if (busInterval) clearInterval(busInterval);
+
+    // Dibujar línea
+    lineaActiva = L.polyline(ruta.coords, {
+        color: ruta.color, weight: 7, opacity: 0.9
+    }).addTo(map);
+    map.fitBounds(lineaActiva.getBounds(), { padding: [60, 60] });
+
+    // Marcadores de inicio y fin
+    L.circleMarker(ruta.coords[0], { radius: 8, color: 'white', fillColor: ruta.color, fillOpacity: 1, weight: 3 })
+        .addTo(map).bindPopup("🟢 Inicio: " + ruta.nombre);
+    L.circleMarker(ruta.coords[ruta.coords.length-1], { radius: 8, color: 'white', fillColor: '#333', fillOpacity: 1, weight: 3 })
+        .addTo(map).bindPopup("🔴 Final de ruta");
+
+// Limpiar camiones anteriores
+if (window.busMarkers) window.busMarkers.forEach(m => map.removeLayer(m));
+if (busInterval) clearInterval(busInterval);
+window.busMarkers = [];
+
+const horaActual = new Date().getHours() + new Date().getMinutes() / 60;
+const esPico = (horaActual >= 7.5 && horaActual <= 9) || (horaActual >= 18 && horaActual <= 20);
+const progresos = calcularCamionesSumulados(ruta);
+
+if (progresos.length === 0) {
+    document.getElementById('info-paradas').textContent = ruta.paradas + " — ⚠️ Fuera de horario";
+    return;
+}
+
+// Crear un marcador por cada camión en ruta ahorita
+progresos.forEach((progreso, i) => {
+    const coord = obtenerCoordEnProgreso(ruta.coords, progreso);
+    const icono = L.divIcon({
+        className: 'bus-icon-ani',
+        html: `🚌 ${key}`,
+        iconSize: null
+    });
+    const marker = L.marker(coord, { icon: icono }).addTo(map);
+    marker.bindPopup(`
+        <b>${ruta.nombre}</b><br>
+        Unidad ${i + 1} de ${progresos.length}<br>
+        ${esPico ? '⚠️ Hora pico — posible retraso' : '✅ Circulando normal'}<br>
+        Recorrido: ${Math.round(progreso * 100)}% completado
+    `);
+    window.busMarkers.push(marker);
+});
+
+// Mover todos los camiones cada 10 segundos
+let tick = 0;
+busInterval = setInterval(() => {
+    tick++;
+    window.busMarkers.forEach((marker, i) => {
+        const nuevoProg = Math.min(progresos[i] + (tick * 0.003), 1);
+        const coord = obtenerCoordEnProgreso(ruta.coords, nuevoProg);
+        marker.setLatLng(coord);
+    });
+}, 10000);
+
+// Info card con cantidad de camiones
+document.getElementById('info-paradas').textContent = 
+    `${ruta.paradas} | 🚌 ${progresos.length} unidades activas${esPico ? ' | ⚠️ Hora pico' : ''}`;
+function calcularCamionesSumulados(ruta) {
+    const ahora = new Date();
+    const horaActual = ahora.getHours() + ahora.getMinutes() / 60;
+
+    // Verificar si está en horario de operación
+    if (horaActual < ruta.inicioOp || horaActual > ruta.finOp) return [];
+
+    // Detectar hora pico — agrega retraso
+    const esPico = (horaActual >= 7.5 && horaActual <= 9) || 
+                   (horaActual >= 18 && horaActual <= 20);
+    const duracionReal = ruta.duracion + (esPico ? 25 : 0);
+
+    // Calcular cuántos camiones hay en ruta ahorita
+    const minutosDesdeInicio = (horaActual - ruta.inicioOp) * 60;
+    const camionesEnRuta = [];
+
+    // Cada camión que salió y todavía no terminó su recorrido
+    for (let salida = 0; salida <= minutosDesdeInicio; salida += ruta.frecuencia) {
+        const tiempoEnRuta = minutosDesdeInicio - salida;
+        if (tiempoEnRuta <= duracionReal) {
+            const progreso = tiempoEnRuta / duracionReal; // 0 a 1
+            camionesEnRuta.push(progreso);
+        }
+    }
+
+    return camionesEnRuta;
+}
+
+function obtenerCoordEnProgreso(coords, progreso) {
+    const totalPuntos = coords.length - 1;
+    const indexFloat = progreso * totalPuntos;
+    const indexBase = Math.floor(indexFloat);
+    const fraccion = indexFloat - indexBase;
+
+    if (indexBase >= totalPuntos) return coords[totalPuntos];
+
+    // Interpolación entre dos puntos — más suave
+    const p1 = coords[indexBase];
+    const p2 = coords[indexBase + 1];
+    return [
+        p1[0] + (p2[0] - p1[0]) * fraccion,
+        p1[1] + (p2[1] - p1[1]) * fraccion
+    ];
+}
+    // Mostrar info card
+    document.getElementById('info-nombre').textContent = "🚌 " + ruta.nombre;
+    document.getElementById('info-paradas').textContent = ruta.paradas;
+    document.getElementById('info-ruta').style.display = "block";
+    // Encuesta después de 30 segundos
+setTimeout(() => {
+    const hoy = new Date().toLocaleDateString('es-MX');
+    const yaRespondio = localStorage.getItem('encuesta_' + key + '_' + hoy);
+    if (!yaRespondio) {
+        document.getElementById('encuesta-ruta-nombre').textContent = ruta.nombre;
+        document.getElementById('encuesta-flotante').style.display = 'block';
+    }
+}, 30000);
+}
+function minimizarParaMarcar() {
+    document.getElementById('panel-reporte').classList.add('minimizado');
+}
+function abrirReporte() {
+    // Cerrar solo sidebar y modal, NO el panel
+    document.getElementById('sidebar').classList.remove('active');
+    document.getElementById('modal-reg').classList.remove('active');
+    document.getElementById('overlay-bg').classList.remove('active');
+    
+    modoReporte = true;
+    pinReporte = null;
+    document.getElementById('pin-status').innerHTML = "👆 Toca el mapa para marcar";
+    document.getElementById('pin-status').style.background = "#fff3e0";
+    document.getElementById('pin-status').style.color = "#e65100";
+    document.getElementById('panel-reporte').classList.add('active');
+}
+function cerrarReporte() {
+    modoReporte = false;
+    if (pinReporte) { map.removeLayer(pinReporte); pinReporte = null; }
+    document.getElementById('panel-reporte').classList.remove('active');
+    document.getElementById('overlay-bg').classList.remove('active');
+    document.querySelectorAll('.tipo-btn').forEach(b => b.classList.remove('selected'));
+    tipoReporteSeleccionado = "";
+    document.getElementById('select-ruta-reporte').value = "";
+}
+function seleccionarTipo(btn) {
+    document.querySelectorAll('.tipo-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    tipoReporteSeleccionado = btn.textContent;
+}
+function enviarReporte() {
+    const rutaKey = document.getElementById('select-ruta-reporte').value;
+    if (!rutaKey) { alert("Selecciona la ruta afectada"); return; }
+    if (!pinReporte) { alert("Toca el mapa para marcar el punto exacto"); return; } addCoins(10);
+    if (!tipoReporteSeleccionado) { alert("Selecciona el tipo de incidente"); return; }
+
+    const pos = pinReporte.getLatLng();
+    const rutaNombre = RUTAS[rutaKey].nombre;
+
+    db.ref('reportes').push({
+        tipo: tipoReporteSeleccionado,
+        ruta: rutaNombre,
+        lat: pos.lat,
+        lng: pos.lng,
+        hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+        fecha: new Date().toLocaleDateString('es-MX')
+    }).then(() => {
+        alert("✅ Reporte enviado en " + rutaNombre + "\nTodos los usuarios lo ven ahora.");
+        cerrarReporte();
+    }).catch(() => {
+        alert("Error al enviar. Revisa tu conexión.");
+    });
+}
+function abrirMenu() {
+    document.getElementById('sidebar').classList.add('active');
+    document.getElementById('overlay-bg').classList.add('active');
+}
+function abrirRegistro() {
+    document.getElementById('modal-reg').classList.add('active');
+    document.getElementById('overlay-bg').classList.add('active');
+}
+function cerrarTodo() {
+    document.getElementById('sidebar').classList.remove('active');
+    document.getElementById('modal-reg').classList.remove('active');
+    document.getElementById('panel-reporte').classList.remove('active');
+    document.getElementById('overlay-bg').classList.remove('active');
+}
+function verTodasLasRutas() {
+    cerrarTodo();
+    Object.keys(RUTAS).forEach(key => activarRuta(key));
+}
+// CHAT COMUNITARIO
+function abrirChat() {
+    cerrarTodo();
+    document.getElementById('panel-chat').classList.add('active');
+    cargarMensajesChat();
+}
+const nombreGuardado = localStorage.getItem('urbanmov_nombre');
+if (nombreGuardado) {
+    document.getElementById('chat-apodo').value = nombreGuardado;
+    document.getElementById('chat-apodo').readOnly = true;
+}
+function cerrarChat() {
+    document.getElementById('panel-chat').classList.remove('active');
+}
+function cargarMensajesChat() {
+    const hoy = new Date().toLocaleDateString('es-MX');
+    const contenedor = document.getElementById('chat-mensajes');
+    
+    db.ref('chat/' + hoy).on('value', (snapshot) => {
+        contenedor.innerHTML = '';
+        if (!snapshot.exists()) {
+            contenedor.innerHTML = '<p style="text-align:center;color:#aaa;margin-top:20px;font-size:14px;">Sin mensajes aún. ¡Sé el primero!</p>';
+            return;
+        }
+        snapshot.forEach((child) => {
+            const m = child.val();
+            contenedor.innerHTML += `
+                <div class="chat-msg">
+                    <div class="chat-autor">${m.autor}</div>
+                    <div class="chat-texto">${m.texto}</div>
+                    <div class="chat-hora">${m.hora}</div>
+                </div>`;
+        });
+        contenedor.scrollTop = contenedor.scrollHeight;
+    });
+}
+function enviarChatMensaje() {
+    let apodo = localStorage.getItem('urbanmov_nombre');
+    if (!apodo) {
+        apodo = document.getElementById('chat-apodo').value.trim();
+        if (!apodo) { alert("Escribe tu nombre primero"); return; }
+        localStorage.setItem('urbanmov_nombre', apodo);
+    }
+    document.getElementById('chat-apodo').value = apodo;
+    document.getElementById('chat-apodo').readOnly = true;
+
+    const texto = document.getElementById('chat-texto').value.trim();
+    if (!texto) return;
+
+    const hoy = new Date().toLocaleDateString('es-MX');
+    db.ref('chat/' + hoy).push({
+        autor: apodo,
+        texto: texto,
+        hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+    }); addCoins(3);
+    document.getElementById('chat-texto').value = '';
+}
+function abrirActualizaciones() {
+    cerrarTodo();
+    document.getElementById('panel-actualizaciones').style.bottom = '0';
+}
+function cerrarActualizaciones() {
+    document.getElementById('panel-actualizaciones').style.bottom = '-100%';
+}
+function abrirPrivacidad() {
+    cerrarTodo();
+    document.getElementById('panel-privacidad').style.bottom = '0';
+}
+function cerrarPrivacidad() {
+    document.getElementById('panel-privacidad').style.bottom = '-100%';
+}
+// PERFIL Y UMCOINS
+function abrirPerfil() {
+    cerrarTodo();
+    actualizarPerfil();
+    document.getElementById('panel-perfil').style.bottom = '0';
+}
+function cerrarPerfil() {
+    document.getElementById('panel-perfil').style.bottom = '-100%';
+}
+function getCoins() {
+    return parseInt(localStorage.getItem('umcoins') || '0');
+}
+function addCoins(cantidad) {
+    const total = getCoins() + cantidad;
+    localStorage.setItem('umcoins', total);
+    actualizarPerfil();
+}
+function getInsignia(coins) {
+    if (coins >= 500) return { icon: '👑', nombre: 'Pasajero VIP', siguiente: 500, nivel: 5 };
+    if (coins >= 300) return { icon: '🏆', nombre: 'Guía de Puebla', siguiente: 500, nivel: 4 };
+    if (coins >= 150) return { icon: '⭐', nombre: 'Colaborador', siguiente: 300, nivel: 3 };
+    if (coins >= 50)  return { icon: '🚌', nombre: 'Pasajero Regular', siguiente: 150, nivel: 2 };
+    return { icon: '🌱', nombre: 'Pasajero Nuevo', siguiente: 50, nivel: 1 };
+}
+function actualizarPerfil() {
+    const coins = getCoins();
+    const nombre = localStorage.getItem('urbanmov_nombre') || 'Pasajero';
+    const ins = getInsignia(coins);
+
+    document.getElementById('perfil-nombre').textContent = nombre;
+    document.getElementById('perfil-coins').textContent = coins;
+    document.getElementById('perfil-insignia-icon').textContent = ins.icon;
+    document.getElementById('perfil-insignia-nombre').textContent = ins.nombre;
+
+    // Barra de progreso
+    const niveles = [0, 50, 150, 300, 500];
+    const base = niveles[ins.nivel - 1];
+    const meta = ins.siguiente;
+    const progreso = ins.nivel === 5 ? 100 : Math.min(((coins - base) / (meta - base)) * 100, 100);
+    document.getElementById('perfil-barra').style.width = progreso + '%';
+    document.getElementById('perfil-progreso-texto').textContent = coins + '/' + meta;
+
+    // Insignias
+    for (let i = 1; i <= 5; i++) {
+        const el = document.getElementById('ins-' + i);
+        el.classList.remove('desbloqueada', 'activa');
+        if (i < ins.nivel) el.classList.add('desbloqueada');
+        if (i === ins.nivel) el.classList.add('activa');
+    }
+}
+
+// Ganar coins automáticamente
+window.addEventListener('load', () => {
+    const hoy = new Date().toLocaleDateString('es-MX');
+    const ultimaVisita = localStorage.getItem('ultima_visita');
+    if (ultimaVisita !== hoy) {
+        localStorage.setItem('ultima_visita', hoy);
+        addCoins(5);
+    }
+});
+function responderEncuesta(respuesta) {
+    const rutaNombre = document.getElementById('encuesta-ruta-nombre').textContent;
+    const hoy = new Date().toLocaleDateString('es-MX');
+    const key = Object.keys(RUTAS).find(k => RUTAS[k].nombre === rutaNombre);
+    
+    db.ref('encuestas/' + hoy).push({
+        ruta: rutaNombre,
+        respuesta: respuesta,
+        hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+    });
+
+    if (key) localStorage.setItem('encuesta_' + key + '_' + hoy, '1');
+    addCoins(2);
+    cerrarEncuesta();
+    alert('¡Gracias! +2 UMCoins por tu opinión 🪙');
+}
+function cerrarEncuesta() {
+    document.getElementById('encuesta-flotante').style.display = 'none';
+}
+    </script>
+</body>
+</html>
