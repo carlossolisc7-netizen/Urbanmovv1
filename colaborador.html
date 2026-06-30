@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>UrbanMov — Movicolaborador</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+  :root { --blue: #002e5d; --orange: #ff5a00; --green: #00c853; }
+  body, html { width: 100%; height: 100%; overflow: hidden; background: #111; }
+
+  /* HEADER */
+  .header {
+    position: fixed; top: 0; left: 0; right: 0; height: 56px;
+    background: linear-gradient(135deg, #002e5d, #ff5a00);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px; z-index: 1000; box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  .header-logo { font-weight: 900; font-size: 17px; color: white; }
+  .header-logo span { color: #ffb380; }
+  .header-badge {
+    background: rgba(255,255,255,0.2); color: white;
+    font-size: 10px; font-weight: 700; padding: 3px 10px;
+    border-radius: 20px; letter-spacing: 1px; text-transform: uppercase;
+  }
+
+  /* MAP */
+  #map { position: fixed; top: 56px; left: 0; right: 0; bottom: 0; z-index: 1; }
+
+  /* PANEL PRINCIPAL */
+  #panel-main {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: white; border-radius: 20px 20px 0 0;
+    padding: 20px; z-index: 500;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.15);
+    transition: transform 0.4s ease;
+  }
+  .drag-handle {
+    width: 40px; height: 4px; background: #ddd;
+    border-radius: 2px; margin: 0 auto 16px;
+  }
+
+  /* ESTADO */
+  #estado-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #f0f4ff; color: #002e5d;
+    font-size: 12px; font-weight: 700; padding: 6px 12px;
+    border-radius: 20px; margin-bottom: 14px;
+  }
+  #estado-dot { width: 8px; height: 8px; border-radius: 50%; background: #aaa; }
+  #estado-dot.activo { background: #00c853; animation: pulsar-dot 1s infinite; }
+  @keyframes pulsar-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* SELECT RUTA */
+  #select-ruta {
+    width: 100%; padding: 12px 14px; border: 2px solid #eee;
+    border-radius: 12px; font-size: 14px; font-weight: 600;
+    color: #002e5d; background: #f8f9ff; margin-bottom: 14px;
+    appearance: none; cursor: pointer;
+  }
+  #select-ruta:focus { outline: none; border-color: #ff5a00; }
+
+  /* BOTÓN PRINCIPAL */
+  #btn-accion {
+    width: 100%; padding: 16px; border: none; border-radius: 14px;
+    font-size: 16px; font-weight: 800; cursor: pointer; letter-spacing: 0.5px;
+    background: linear-gradient(135deg, #002e5d, #ff5a00);
+    color: white; transition: opacity 0.2s;
+  }
+  #btn-accion:active { opacity: 0.85; }
+  #btn-accion.grabando {
+    background: linear-gradient(135deg, #c62828, #e53935);
+  }
+
+  /* STATS */
+  #stats-bar {
+    display: none; grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px; margin-bottom: 14px;
+  }
+  #stats-bar.visible { display: grid; }
+  .stat-card {
+    background: #f8f9ff; border-radius: 10px; padding: 10px;
+    text-align: center;
+  }
+  .stat-num { font-size: 18px; font-weight: 900; color: #002e5d; }
+  .stat-label { font-size: 10px; color: #aaa; font-weight: 600; margin-top: 2px; }
+
+  /* PRÓXIMAMENTE */
+  #panel-prox {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: white; border-radius: 20px 20px 0 0;
+    padding: 24px 20px; z-index: 600;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.2);
+    transform: translateY(100%); transition: transform 0.4s ease;
+  }
+  #panel-prox.visible { transform: translateY(0); }
+
+  /* OVERLAY */
+  #overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4); z-index: 550;
+  }
+  #overlay.visible { display: block; }
+
+  /* TOAST */
+  #toast {
+    position: fixed; bottom: 280px; left: 50%; transform: translateX(-50%);
+    background: #002e5d; color: white; padding: 10px 20px;
+    border-radius: 20px; font-size: 13px; font-weight: 700;
+    z-index: 999; opacity: 0; transition: opacity 0.3s;
+    white-space: nowrap;
+  }
+  #toast.visible { opacity: 1; }
+
+  .btn-conductor {
+    width: 100%; padding: 14px; border: 2px solid #002e5d;
+    border-radius: 12px; background: white; color: #002e5d;
+    font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBTNqHmAk6NfJDWXVcmqkT0yQ-O7JXQ3Co",
+    authDomain: "movitransporte-puebla.firebaseapp.com",
+    databaseURL: "https://movitransporte-puebla-default-rtdb.firebaseio.com",
+    projectId: "movitransporte-puebla",
+    storageBucket: "movitransporte-puebla.appspot.com",
+    messagingSenderId: "869608165316",
+    appId: "1:869608165316:web:40effd3a8c66b2e6e5440d"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+</script>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-logo">Urban<span>Mov</span></div>
+  <div class="header-badge">Movicolaborador</div>
+</div>
+
+<!-- MAPA -->
+<div id="map"></div>
+
+<!-- PANEL PRINCIPAL -->
+<div id="panel-main">
+  <div class="drag-handle"></div>
+
+  <div id="estado-badge">
+    <div id="estado-dot"></div>
+    <span id="estado-texto">Sin rastreo activo</span>
+  </div>
+
+  <!-- STATS -->
+  <div id="stats-bar">
+    <div class="stat-card">
+      <div class="stat-num" id="stat-puntos">0</div>
+      <div class="stat-label">Puntos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-dist">0m</div>
+      <div class="stat-label">Distancia</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-tiempo">0:00</div>
+      <div class="stat-label">Tiempo</div>
+    </div>
+  </div>
+
+  <select id="select-ruta">
+    <option value="">— Selecciona la ruta que vas a tomar —</option>
+  </select>
+
+  <button id="btn-accion" onclick="toggleRastreo()">Iniciar rastreo</button>
+
+  <button class="btn-conductor" onclick="abrirProximamente()">
+    <i class="fas fa-bus" style="margin-right:8px;"></i>Soy conductor — Próximamente
+  </button>
+</div>
+
+<!-- PANEL PRÓXIMAMENTE -->
+<div id="panel-prox">
+  <div style="text-align:center;margin-bottom:20px;">
+   <img src="bus3D.png" style="width:80px;height:80px;object-fit:contain;margin-bottom:12px;">
+    <div style="font-weight:900;color:#002e5d;font-size:20px;">Conductores UrbanMov</div>
+    <div style="font-size:13px;color:#888;margin-top:6px;line-height:1.6;">
+      Pronto los choferes podrán registrarse y compartir su ubicación en tiempo real directamente desde esta app. Los pasajeros verán el camión moverse en el mapa en vivo.
+    </div>
+  </div>
+  <div style="background:#f0f4ff;border-radius:14px;padding:16px;margin-bottom:16px;">
+    <div style="font-weight:800;color:#002e5d;font-size:13px;margin-bottom:10px;">Lo que viene:</div>
+    <div style="font-size:12px;color:#555;display:flex;flex-direction:column;gap:8px;">
+      <div><i class="fas fa-check-circle" style="color:#ff5a00;margin-right:8px;"></i>Registro de conductores verificados</div>
+      <div><i class="fas fa-check-circle" style="color:#ff5a00;margin-right:8px;"></i>GPS en tiempo real visible para pasajeros</div>
+      <div><i class="fas fa-check-circle" style="color:#ff5a00;margin-right:8px;"></i>Reporte de incidentes desde la unidad</div>
+      <div><i class="fas fa-check-circle" style="color:#ff5a00;margin-right:8px;"></i>Historial de recorridos por turno</div>
+    </div>
+  </div>
+  <button onclick="cerrarProximamente()" style="width:100%;padding:14px;background:linear-gradient(135deg,#002e5d,#ff5a00);color:white;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;">Entendido</button>
+</div>
+
+<!-- OVERLAY -->
+<div id="overlay" onclick="cerrarProximamente()"></div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// VARIABLES GLOBALES
+let map, tileLayer;
+let grabando = false;
+let puntosRuta = [];
+let lineaActiva = null;
+let miMarker = null;
+let watchId = null;
+let timerInterval = null;
+let segundos = 0;
+let distanciaTotal = 0;
+let ultimoPunto = null;
+const colabId = 'colab_' + Math.random().toString(36).substr(2,9);
+
+// RUTAS DISPONIBLES
+const RUTAS_COLABS = [
+  { key: '68B', nombre: 'Ruta 68B — Galaxia → Centro → 11 Norte' },
+  { key: 'Azteca-C', nombre: 'Ruta Azteca C — Encinar → La Noria' },
+  { key: '72', nombre: 'Ruta 72 — Villa Deportiva → Misiones' },
+  { key: '33', nombre: 'Ruta 33 — Héroes → Centro' },
+  { key: '4', nombre: 'Ruta 4 — Valsequillo → Centro' },
+  { key: 'RUTA-L1-I', nombre: 'Línea 1 RUTA — Chachapa → Tlaxcalancingo' },
+  { key: 'RUTA-L1-R', nombre: 'Línea 1 RUTA — Tlaxcalancingo → Chachapa' },
+  { key: 'RUTA-L2-I', nombre: 'Línea 2 RUTA — San Ramón → Diagonal Defensores' },
+  { key: 'RUTA-L2-R', nombre: 'Línea 2 RUTA — Diagonal Defensores → San Ramón' },
+  { key: 'RUTA-L3', nombre: 'Línea 3 RUTA — Valsequillo → CAPU' },
+];
+
+// INICIALIZAR
+window.addEventListener('load', () => {
+  map = L.map('map', { zoomControl: false }).setView([19.0433, -98.2019], 14);
+  tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '© CARTO'
+  }).addTo(map);
+
+  // Llenar select
+  const sel = document.getElementById('select-ruta');
+  RUTAS_COLABS.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r.key;
+    opt.textContent = r.nombre;
+    sel.appendChild(opt);
+  });
+
+  // Ubicación inicial
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      map.setView([pos.coords.latitude, pos.coords.longitude], 15);
+    });
+  }
+});
+
+// TOGGLE RASTREO
+function toggleRastreo() {
+  if (!grabando) iniciarRastreo();
+  else terminarRastreo();
+}
+
+function iniciarRastreo() {
+  const ruta = document.getElementById('select-ruta').value;
+  if (!ruta) { mostrarToast('Selecciona una ruta primero'); return; }
+
+  grabando = true;
+  puntosRuta = [];
+  distanciaTotal = 0;
+  ultimoPunto = null;
+  segundos = 0;
+
+  // UI
+  document.getElementById('btn-accion').textContent = 'Detener rastreo';
+  document.getElementById('btn-accion').classList.add('grabando');
+  document.getElementById('estado-dot').classList.add('activo');
+  document.getElementById('estado-texto').textContent = 'Rastreando ruta...';
+  document.getElementById('stats-bar').classList.add('visible');
+
+  // Timer
+  timerInterval = setInterval(() => {
+    segundos++;
+    const m = Math.floor(segundos / 60);
+    const s = segundos % 60;
+    document.getElementById('stat-tiempo').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  }, 1000);
+
+  // GPS
+  watchId = navigator.geolocation.watchPosition(pos => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    const accuracy = pos.coords.accuracy;
+
+    // Filtrar puntos imprecisos
+    if (accuracy > 30) return;
+
+    // Filtrar saltos raros (más de 100m en 2 segundos)
+    if (ultimoPunto) {
+      const dist = calcDist(ultimoPunto[0], ultimoPunto[1], lat, lng);
+      if (dist > 100) return;
+      distanciaTotal += dist;
+      const km = distanciaTotal >= 1000 ?
+        (distanciaTotal/1000).toFixed(1) + 'km' :
+        Math.round(distanciaTotal) + 'm';
+      document.getElementById('stat-dist').textContent = km;
+    }
+
+    ultimoPunto = [lat, lng];
+    puntosRuta.push([lat, lng]);
+    document.getElementById('stat-puntos').textContent = puntosRuta.length;
+
+    // Dibujar línea
+    if (lineaActiva) map.removeLayer(lineaActiva);
+    if (puntosRuta.length > 1) {
+      lineaActiva = L.polyline(puntosRuta, {
+        color: '#ff5a00', weight: 5, opacity: 0.85
+      }).addTo(map);
+    }
+
+    // Marcador
+    if (miMarker) {
+      miMarker.setLatLng([lat, lng]);
+    } else {
+      const icono = L.divIcon({
+        className: '',
+        html: `<div style="position:relative;width:20px;height:20px;">
+          <div style="position:absolute;width:20px;height:20px;border-radius:50%;background:rgba(255,90,0,0.2);animation:pulsar-dot 1.5s infinite;"></div>
+          <div style="position:absolute;top:4px;left:4px;width:12px;height:12px;border-radius:50%;background:#ff5a00;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>
+        </div>`,
+        iconSize: [20, 20], iconAnchor: [10, 10]
+      });
+      miMarker = L.marker([lat, lng], { icon: icono }).addTo(map);
+    }
+    map.panTo([lat, lng]);
+
+  }, err => {
+    mostrarToast('Error de GPS: ' + err.message);
+  }, { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
+
+  mostrarToast('Rastreo iniciado');
+}
+
+function terminarRastreo() {
+  if (puntosRuta.length < 10) {
+    mostrarToast('Recorrido muy corto, sigue en el camión');
+    return;
+  }
+
+  grabando = false;
+  clearInterval(timerInterval);
+  navigator.geolocation.clearWatch(watchId);
+
+  const ruta = document.getElementById('select-ruta').value;
+  const fecha = new Date().toISOString().slice(0,10);
+  const hora = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+
+  // Guardar en Firebase
+  db.ref('colaboraciones/' + ruta + '/' + fecha).push({
+    colaborador: colabId,
+    hora: hora,
+    puntos: puntosRuta.length,
+    distancia: Math.round(distanciaTotal),
+    coords: puntosRuta
+  });
+
+  // UI
+  document.getElementById('btn-accion').textContent = 'Iniciar rastreo';
+  document.getElementById('btn-accion').classList.remove('grabando');
+  document.getElementById('estado-dot').classList.remove('activo');
+  document.getElementById('estado-texto').textContent = 'Rastreo completado';
+  document.getElementById('stats-bar').classList.remove('visible');
+
+  mostrarToast('¡Gracias! Ruta guardada con ' + puntosRuta.length + ' puntos');
+
+  // Mantener línea visible
+  setTimeout(() => {
+    if (lineaActiva) map.removeLayer(lineaActiva);
+    if (miMarker) { map.removeLayer(miMarker); miMarker = null; }
+    puntosRuta = [];
+    document.getElementById('estado-texto').textContent = 'Sin rastreo activo';
+  }, 5000);
+}
+
+// CALCULAR DISTANCIA
+function calcDist(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2-lat1) * Math.PI/180;
+  const dLng = (lng2-lng1) * Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// TOAST
+function mostrarToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  setTimeout(() => t.classList.remove('visible'), 3000);
+}
+
+// PRÓXIMAMENTE
+function abrirProximamente() {
+  document.getElementById('panel-prox').classList.add('visible');
+  document.getElementById('overlay').classList.add('visible');
+}
+function cerrarProximamente() {
+  document.getElementById('panel-prox').classList.remove('visible');
+  document.getElementById('overlay').classList.remove('visible');
+}
+</script>
+</body>
+</html>
