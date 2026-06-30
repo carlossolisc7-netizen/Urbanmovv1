@@ -1,0 +1,1806 @@
+<!DOCTYPE html>
+<html lang="es">
+  <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Y9QXHXWG4F"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Y9QXHXWG4F');
+</script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>UrbanMov - Inteligencia en Movilidad</title>
+    <meta name="description" content="UrbanMov — App de transporte público en Puebla. Rutas en tiempo real, alertas de seguridad y chat comunitario. La app de movilidad inteligente de Puebla.">
+<meta name="keywords" content="transporte Puebla, rutas camiones Puebla, app transporte público Puebla, RUTA Puebla, movilidad urbana Puebla">
+<meta name="author" content="UrbanMov">
+<meta property="og:title" content="UrbanMov — Inteligencia en Movilidad Urbana">
+<meta property="og:description" content="Rutas en tiempo real, alertas de seguridad y comunidad de pasajeros en Puebla.">
+<meta property="og:url" content="https://urbanmovv1.netlify.app">
+<meta property="og:type" content="website">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+       :root { --blue: #002e5d; --orange: #ff5a00; }
+        body.dark .header, body.dark .search-box, body.dark #navbar-bottom, body.dark #sidebar, body.dark .chat-msg, body.dark #panel-chat, body.dark #panel-reporte, body.dark #panel-perfil, body.dark #panel-actualizaciones, body.dark #panel-privacidad { background: #1e1e1e !important; color: #f0f0f0 !important; }
+        body.dark .menu-item { color: #f0f0f0 !important; border-bottom-color: #333 !important; }
+        @keyframes pulsar {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(2.5); opacity: 0; }
+}
+@keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+}
+        body.dark .chat-texto { color: #f0f0f0 !important; }
+body.dark .chat-hora { color: #aaa !important; }
+        body.dark .chat-autor { color: #7ab3ff !important; }
+        body.dark .search-box input { color: #f0f0f0 !important; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; transition: background 0.3s, color 0.3s, border-color 0.3s; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #222; }
+        
+        #map { width: 100%; height: 100%; position: absolute; z-index: 1; }
+
+        /* UI SUPERIOR */
+.header { position: fixed; top: 22px; width: 100%; z-index: 1000; background: white; padding: 10px 16px; color: #002e5d; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+      .profile-btn { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--orange); background: #fff center/cover; cursor: pointer; }
+
+.search-box { position: absolute; top: 88px; left: 10px; right: 10px; z-index: 1000; background: white; border-radius: 14px; padding: 10px 14px; display: flex; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.12); border: 1.5px solid #e8e8e8; }
+.search-box input { border: none; width: 100%; outline: none; font-size: 15px; flex: 1; margin: 0 10px; font-weight: 600; color: #222; background: transparent; }
+.btn-ir { background: linear-gradient(135deg, #002e5d, #ff5a00); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 800; cursor: pointer; font-size: 14px; letter-spacing: 0.5px; }
+
+        /* MENÚ LATERAL */
+#sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: white; z-index: 3000; transition: 0.4s; box-shadow: 5px 0 20px rgba(0,0,0,0.4); overflow-y: auto; }
+        #sidebar.active { left: 0; }
+.menu-header { background: linear-gradient(135deg, #002e5d, #ff5a00); color: white; padding: 30px 20px; display: flex; align-items: center; gap: 12px; }
+        .menu-item { padding: 15px 20px; border-bottom: 1px solid #eee; color: var(--blue); font-weight: bold; cursor: pointer; }
+
+        /* REGISTRO REAL (MODAL) */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 4000; display: none; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; }
+        .register-card { background: white; width: 85%; max-width: 380px; padding: 25px; border-radius: 20px; text-align: center; }
+        .register-card input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; }
+
+        .overlay-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2500; display: none; }
+        .overlay-bg.active { display: block; }
+        /* SUGERENCIAS DEL BUSCADOR */
+#sugerencias { position: fixed; top: 143px; left: 10px; right: 10px; z-index: 9999; background: white; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: none; max-height: 200px; overflow-y: auto; }
+.sug-item { padding: 12px 15px; border-bottom: 1px solid #eee; cursor: pointer; font-weight: bold; color: #002e5d; }
+.sug-item:hover { background: #f0f4ff; }
+.sug-item span { font-size: 12px; color: #888; font-weight: normal; }
+
+/* PANEL DE REPORTE */
+#panel-reporte { position: fixed; bottom: -700px; left: 0; right: 0; background: white; border-radius: 20px 20px 0 0; padding: 20px; z-index: 3000; transition: 0.4s; box-shadow: 0 -4px 20px rgba(0,0,0,0.2); }
+#panel-reporte.active { bottom: 65px; display: block; }
+#panel-reporte h3 { color: #002e5d; margin-bottom: 15px; }
+.tipo-reporte { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+.tipo-btn { padding: 8px 14px; border: 2px solid #ddd; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 13px; background: white; }
+.tipo-btn.selected { border-color: #ff5a00; color: #ff5a00; }
+.tipo-btn:has(🟢) { border-color: #43A047; }
+.tipo-btn:has(🟡) { border-color: #FB8C00; }
+.tipo-btn:has(🔴) { border-color: #E53935; }
+#btn-enviar-reporte { width: 100%; background: #ff5a00; color: white; border: none; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 15px; cursor: pointer; }
+
+/* CAMIÓN ANIMADO */
+.bus-icon-ani { background: #002e5d; color: white; border-radius: 8px; padding: 3px 6px; font-size: 13px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4); white-space: nowrap; }
+
+/* INFO CARD DE RUTA */
+#info-ruta { position: absolute; bottom: 75px; left: 10px; right: 10px; z-index: 1000; background: #002e5d; color: white; border-radius: 14px; padding: 14px; display: none; }
+#info-ruta h4 { margin: 0 0 5px; font-size: 16px; }
+#info-ruta p { margin: 0; font-size: 13px; color: #aac4e8; }
+/* PANEL MINIMIZADO */
+#panel-reporte.minimizado {
+    bottom: 0;
+    height: 50px;
+    overflow: hidden;
+    border-radius: 20px 20px 0 0;
+}
+#panel-reporte.minimizado::before {
+    content: "👆 Toca el mapa para marcar el punto — luego regresa aquí";
+    display: block;
+    text-align: center;
+    font-size: 13px;
+    font-weight: bold;
+    color: #ff5a00;
+    padding: 14px;
+}
+/* CHAT COMUNITARIO */
+#panel-chat { position: fixed; bottom: -700px; left: 0; right: 0; background: white; border-radius: 20px 20px 0 0; padding: 0; z-index: 3000; transition: 0.4s; box-shadow: 0 -4px 20px rgba(0,0,0,0.2); height: 75vh; display: flex; flex-direction: column; }
+#panel-chat.active { bottom: 0; display: flex; }
+#chat-header { background: linear-gradient(135deg, #002e5d, #ff5a00); color: white; padding: 14px 20px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; align-items: center; }
+#chat-header h3 { margin: 0; font-size: 16px; }
+#chat-header span { font-size: 12px; opacity: 0.8; }
+#chat-mensajes { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: #f0f2f5; }
+.chat-msg { background: white; border-radius: 12px; padding: 8px 12px; max-width: 85%; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+.chat-msg .chat-autor { font-size: 12px; font-weight: 800; color: #0057ff; margin-bottom: 2px; }
+.chat-msg .chat-texto { font-size: 14px; color: #222; }
+.chat-msg .chat-hora { font-size: 11px; color: #aaa; margin-top: 2px; text-align: right; }
+#chat-input-bar { padding: 10px 12px; background: white; display: flex; gap: 8px; align-items: center; border-top: 1px solid #eee; }
+#chat-input-bar input { flex: 1; padding: 10px 16px; border-radius: 25px; border: 1px solid #ddd; font-size: 14px; outline: none; background: #f0f2f5; }
+#chat-input-bar button { background: #0057ff; color: white; border: none; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; font-size: 16px; }
+.insignia-item { padding:10px 14px; border-radius:10px; background:#f9f9f9; border:2px solid #eee; font-weight:600; font-size:14px; color:#aaa; }
+.insignia-item.desbloqueada { background:#f0f4ff; border-color:#0057ff; color:#002e5d; }
+.insignia-item.activa { background:#002e5d; border-color:#002e5d; color:white; }
+/* ENCUESTA RÁPIDA */
+#encuesta-flotante { position: fixed; bottom: 90px; left: 10px; right: 10px; background: white; border-radius: 16px; padding: 14px 16px; z-index: 2000; box-shadow: 0 4px 20px rgba(0,0,0,0.15); display: none; }
+#encuesta-flotante p { font-weight: 700; color: #002e5d; font-size: 14px; margin-bottom: 10px; }
+.enc-btns { display: flex; gap: 8px; }
+.enc-btn { flex: 1; padding: 10px; border: none; border-radius: 10px; font-size: 18px; cursor: pointer; font-weight: bold; }
+#historial-rutas { position:fixed; top:130px; left:10px; right:10px; z-index:1000; display:none; }
+.hist-item { background:white; border-radius:10px; padding:10px 14px; margin-bottom:6px; font-size:13px; color:#002e5d; font-weight:700; box-shadow:0 2px 8px rgba(0,0,0,0.1); cursor:pointer; display:flex; align-items:center; gap:8px; }
+.hist-item span { font-size:12px; color:#888; font-weight:400; }
+#btns-compartir { margin-top:10px; gap:8px; }
+.btn-compartir { flex:1; padding:8px; border:none; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer; }
+.btn-wa { background:#25D366; color:white; }
+.btn-fb { background:#1877F2; color:white; }
+/* NAVBAR INFERIOR */
+#navbar-bottom { position: fixed; bottom: 0; left: 0; right: 0; height: 65px; background: white; z-index: 2000; display: flex; align-items: center; justify-content: space-around; border-top: 1px solid #eee; box-shadow: 0 -2px 10px rgba(0,0,0,0.08); }
+.nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; padding: 8px 16px; border-radius: 12px; transition: all 0.2s; }
+.nav-item i { font-size: 20px; color: #aaa; }
+.nav-item span { font-size: 10px; color: #aaa; font-weight: 600; }
+.nav-item.active i, .nav-item.active span { color: #0057ff; }
+.nav-item:hover i, .nav-item:hover span { color: #0057ff; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+    <div id="overlay-bg" class="overlay-bg" onclick="cerrarTodo()"></div>
+<div style="background:linear-gradient(135deg,#002e5d,#ff5a00);overflow:hidden;height:28px;display:flex;align-items:center;position:fixed;top:0;left:0;right:0;z-index:2001;cursor:pointer;" onclick="window.location.href='colaborador.html'">
+    <div id="ticker-inner" style="display:flex;white-space:nowrap;animation:ticker 18s linear infinite;gap:60px;padding-left:100%;">
+        <span style="color:white;font-size:11px;font-weight:700;">🚌 ¿Usas el camión en Puebla? Únete como Movicolaborador y ayuda a mejorar las rutas</span>
+        <span style="color:#ffb380;font-size:11px;font-weight:700;">👉 Toca aquí para colaborar</span>
+        <span style="color:white;font-size:11px;font-weight:700;">🚌 ¿Usas el camión en Puebla? Únete como Movicolaborador y ayuda a mejorar las rutas</span>
+        <span style="color:#ffb380;font-size:11px;font-weight:700;">👉 Toca aquí para colaborar</span>
+    </div>
+</div>
+<div class="header">
+    <i class="fas fa-bars" onclick="abrirMenu()" style="font-size:22px; cursor:pointer; color:#002e5d;"></i>
+    <div style="display:flex; flex-direction:column; align-items:center; position:absolute; left:50%; transform:translateX(-50%);">
+      <img src="urbanmov1.png" style="height:50px; object-fit:contain;">
+    </div>
+    <div id="header-avatar" onclick="abrirPerfil()" style="width:40px;height:40px;border-radius:50%;border:2px solid #ff5a00;background:url('avatar1.jpeg') center/cover;cursor:pointer;flex-shrink:0;"></div>
+</div>
+<div class="search-box">
+    <i class="fas fa-search" style="color:#aaa; font-size:16px;"></i>
+    <input type="text" id="search-input" placeholder="¿A dónde vas? Busca tu ruta...">
+    <button class="btn-ir" onclick="buscarRuta()">Ir</button>
+</div>
+<div id="btn-corregir-ruta" onclick="abrirCorreccionRuta()" style="display:none;position:fixed;top:150px;right:16px;background:#002e5d;color:white;border:none;border-radius:12px;padding:10px 16px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:3000;">
+    <i class="fas fa-flag" style="margin-right:6px;"></i>Reportar error en ruta
+</div>
+
+    <div id="sidebar">
+      <div class="menu-header">
+    <img src="urbanmov2.png" style="width:36px; height:36px; object-fit:contain;">
+    <div>
+        <div style="font-weight:900; font-size:18px;">Urban<span style="color:#ff5a00;:;">Mov</span></div>
+        <div style="font-size:12px; opacity:0.8;">Puebla, México</div>
+    </div>
+</div>
+<div class="menu-item" onclick="compartirRuta('whatsapp')" style="color:#25D366;">
+    <i class="fab fa-whatsapp" style="font-size:18px;margin-right:8px;"></i>Compartir por WhatsApp
+</div>
+<div class="menu-item" onclick="compartirRuta('facebook')" style="color:#1877F2;">
+    <i class="fab fa-facebook" style="font-size:18px;margin-right:8px;"></i>Compartir por Facebook
+</div>
+<div class="menu-item" onclick="toggleNocturno()" id="btn-nocturno">Modo nocturno</div>
+        <div class="menu-item" onclick="verTodasLasRutas()"> Ver todas las rutas</div>
+
+<div class="menu-item" onclick="abrirActualizaciones()"> Actualizaciones</div>
+<div class="menu-item" onclick="abrirNoticias()"> Noticias</div>
+<div class="menu-item" onclick="abrirPrivacidad()"> Privacidad</div>
+<div class="menu-item" style="color:#aaa; cursor:default;">
+     Capacidad del camión <span style="background:#ff5a00;color:white;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:5px;">Próximamente</span>
+</div>
+<div class="menu-item" style="color:#aaa; cursor:default;">
+     Caminata Segura <span style="background:#ff5a00;color:white;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:5px;">Próximamente</span>
+</div>
+<div class="menu-item" style="color:#aaa; cursor:default;">
+     Alerta de Ruta Cercana <span style="background:#ff5a00;color:white;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:5px;">Próximamente</span>
+</div>
+<div class="menu-item" style="color:#aaa; cursor:default;">
+    ️ SafeMove <span style="background:#ff5a00;color:white;font-size:10px;padding:2px 6px;border-radius:10px;margin-left:5px;">Próximamente</span>
+</div>
+       <div class="menu-item" onclick="cerrarTodo()">Cerrar</div>
+</div>
+<div id="modal-reg" class="modal-overlay">
+    <div class="register-card">
+        <h2 style="color:var(--blue); margin-bottom:15px;">Crear Cuenta</h2>
+        <input type="text" placeholder="Nombre">
+        <input type="email" placeholder="Correo">
+        <input type="password" placeholder="Contraseña">
+        <button onclick="cerrarTodo()" style="width:100%; background:var(--blue); color:white; padding:15px; border:none; border-radius:10px; font-weight:bold;">REGISTRARSE</button>
+    </div>
+</div>
+<!-- Sugerencias del buscador -->
+<div id="sugerencias"></div>
+<div id="historial-rutas"></div>
+
+<!-- Info card de ruta activa -->
+<div id="info-ruta">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <h4 id="info-nombre"></h4>
+        <button onclick="ocultarCompartir()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:26px;height:26px;border-radius:50%;font-size:14px;cursor:pointer;flex-shrink:0;">✕</button>
+    </div>
+    <p id="info-paradas"></p>
+<div id="btns-compartir" style="display:none; margin-top:10px; flex-direction:row; gap:8px; width:100%;">
+    <button onclick="compartirRuta('whatsapp')" style="flex:1;padding:8px;background:#25D366;color:white;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;"> WhatsApp</button>
+    <button onclick="compartirRuta('facebook')" style="flex:1;padding:8px;background:#1877F2;color:white;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;"> Facebook</button>
+</div>
+</div>
+
+<!-- Panel de reportes -->
+<div id="panel-reporte">
+    <h3> Reportar incidente</h3>
+
+    <p style="font-size:13px;color:#666;margin-bottom:8px;">1️ Selecciona la ruta</p>
+    <select id="select-ruta-reporte" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;margin-bottom:12px;font-size:14px;color:#002e5d;font-weight:bold;">
+        <option value="">— Elige la ruta afectada —</option>
+    </select>
+
+   <p style="font-size:13px;color:#666;margin-bottom:8px;">2️ Toca el mapa en el punto exacto</p>
+<div id="pin-status" style="background:#f0f4ff;border-radius:8px;padding:10px;margin-bottom:8px;font-size:13px;color:#002e5d;text-align:center;">
+     Aún no has marcado el punto
+</div>
+
+<button onclick="minimizarParaMarcar()" style="width:100%;background:#002e5d;color:white;border:none;padding:10px;border-radius:8px;font-weight:bold;margin-bottom:12px;cursor:pointer;">
+    👆 Marcar punto en el mapa
+</button>
+
+    <p style="font-size:13px;color:#666;margin-bottom:8px;">3️ Tipo de incidente</p>
+    <div class="tipo-reporte">
+        <button class="tipo-btn" onclick="seleccionarTipo(this)"> Robo</button>
+        <button class="tipo-btn" onclick="seleccionarTipo(this)"> Accidente</button>
+        <button class="tipo-btn" onclick="seleccionarTipo(this)"> Atraso</button>
+        <button class="tipo-btn" onclick="seleccionarTipo(this)"> Desvío</button>
+        <button class="tipo-btn" onclick="seleccionarTipo(this)"> Revisión</button>
+        <button class="tipo-btn" onclick="seleccionarTipo(this)"> Vacío</button>
+<button class="tipo-btn" onclick="seleccionarTipo(this)"> Medio lleno</button>
+<button class="tipo-btn" onclick="seleccionarTipo(this)"> Lleno</button>
+    </div>
+    <button id="btn-enviar-reporte" onclick="enviarReporte()">Enviar Reporte</button>
+    <button onclick="cerrarReporte()" style="width:100%;margin-top:8px;background:none;border:none;color:#aaa;cursor:pointer;">Cancelar</button>
+</div>
+<!-- Chat Comunitario -->
+<div id="panel-chat">
+    <div id="chat-header">
+        <div>
+<h3> Chat Puebla</h3>
+            <span>Comunidad UrbanMov · se reinicia cada día</span>
+        </div>
+        <i class="fas fa-times" onclick="cerrarChat()" style="cursor:pointer; font-size:20px;"></i>
+    </div>
+    <div id="chat-mensajes"></div>
+    <div id="chat-input-bar">
+        <input type="text" id="chat-apodo" placeholder="Tu nombre" style="max-width:90px; flex:none;">
+        <input type="text" id="chat-texto" placeholder="Escribe un mensaje...">
+        <button onclick="enviarChatMensaje()"><i class="fas fa-paper-plane"></i></button>
+    </div>
+</div>
+<!-- Panel Actualizaciones -->
+<div id="panel-actualizaciones" style="position:fixed;bottom:-100%;left:0;right:0;background:white;border-radius:20px 20px 0 0;padding:0;z-index:3000;transition:0.4s;box-shadow:0 -4px 20px rgba(0,0,0,0.2);height:80vh;overflow-y:auto;">
+    <div style="background: linear-gradient(135deg, #002e5d, #ff5a00);color:white;padding:16px 20px;border-radius:20px 20px 0 0;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;">
+        <div><h3 style="margin:0;font-size:16px;"> Actualizaciones</h3><span style="font-size:12px;opacity:0.8;">Historial de mejoras</span></div>
+        <i class="fas fa-times" onclick="cerrarActualizaciones()" style="cursor:pointer;font-size:20px;"></i>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        <div style="border-left:3px solid #0057ff;padding:10px 14px;background:#f0f4ff;border-radius:0 10px 10px 0;">
+          <div style="border-left:3px solid #ff5a00;padding:10px 14px;background:#fff3ec;border-radius:0 10px 10px 0;">
+            <div style="font-weight:800;color:#ff5a00;font-size:14px;">v1.7 — Puntos de Interés y Navegación</div>
+            <div style="font-size:12px;color:#666;margin-top:4px;">Se agregaron 6 lugares clave de Puebla en el mapa. Al tocarlos muestra rutas cercanas y la distancia caminando desde tu ubicación.</div>
+            <div style="font-size:11px;color:#aaa;margin-top:4px;">Junio 2026</div>
+        </div>
+        <div style="border-left:3px solid #ff5a00;padding:10px 14px;background:#fff3ec;border-radius:0 10px 10px 0;">
+            <div style="font-weight:800;color:#ff5a00;font-size:14px;">v1.6 — Rutas Oficiales RUTA</div>
+            <div style="font-size:12px;color:#666;margin-top:4px;">Se integraron las líneas troncales 1, 2 y 3 de RUTA Puebla con coordenadas oficiales, más 28 rutas alimentadoras.</div>
+            <div style="font-size:11px;color:#aaa;margin-top:4px;">Junio 2026</div>
+        </div>
+        <div style="border-left:3px solid #ff5a00;padding:10px 14px;background:#fff3ec;border-radius:0 10px 10px 0;">
+            <div style="font-weight:800;color:#ff5a00;font-size:14px;">v1.5 — Avatares y Modo Oscuro</div>
+            <div style="font-size:12px;color:#666;margin-top:4px;">Perfiles con foto de avatar personalizable. Modo oscuro automático después de las 8pm con memoria de preferencia.</div>
+            <div style="font-size:11px;color:#aaa;margin-top:4px;">Mayo 2026</div>
+        </div>
+        <div style="border-left:3px solid #ff5a00;padding:10px 14px;background:#fff3ec;border-radius:0 10px 10px 0;">
+            <div style="font-weight:800;color:#ff5a00;font-size:14px;">v1.4 — Nuevo Branding y Mapas 3D</div>
+            <div style="font-size:12px;color:#666;margin-top:4px;">Logo renovado, íconos 3D de camión y alertas en el mapa, sistema de ranking y UMCoins mejorado.</div>
+            <div style="font-size:11px;color:#aaa;margin-top:4px;">Mayo 2026</div>
+        </div>
+            <div style="font-weight:800;color:#002e5d;font-size:14px;">v1.3 — Chat Comunitario</div>
+            <div style="font-size:12px;color:#666;margin-top:4px;">Se agregó chat en tiempo real para todos los usuarios. Se reinicia cada día automáticamente.</div>
+            <div style="font-size:11px;color:#aaa;margin-top:4px;">Marzo 2026</div>
+        </div>
+        <div style="border-left:3px solid #0057ff;padding:10px 14px;background:#f0f4ff;border-radius:0 10px 10px 0;">
+            <div style="font-weight:800;color:#002e5d;font-size:14px;">v1.2 — Reportes en Tiempo Real</div>
+            <div style="font-size:12px;color:#666;margin-top:4px;">Los usuarios pueden reportar robos, accidentes y atrasos. Aparecen al instante en el mapa de todos.</div>
+            <div style="font-size:11px;color:#aaa;margin-top:4px;">Marzo 2026</div>
+        </div>
+        <div style="border-left:3px solid #0057ff;padding:10px 14px;background:#f0f4ff;border-radius:0 10px 10px 0;">
+            <div style="font-weight:800;color:#002e5d;font-size:14px;">v1.1 — Asistente IA</div>
+            <div style="font-size:12px;color:#666;margin-top:4px;">Chatbot con inteligencia artificial que responde preguntas sobre rutas, horarios y cómo llegar a tu destino.</div>
+            <div style="font-size:11px;color:#aaa;margin-top:4px;">Marzo 2026</div>
+        </div>
+        <div style="border-left:3px solid #0057ff;padding:10px 14px;background:#f0f4ff;border-radius:0 10px 10px 0;">
+            <div style="font-weight:800;color:#002e5d;font-size:14px;">v1.0 — Lanzamiento</div>
+            <div style="font-size:12px;color:#666;margin-top:4px;">Mapa de rutas de Puebla con buscador, rutas reales trazadas y simulación de camiones por horario.</div>
+            <div style="font-size:11px;color:#aaa;margin-top:4px;">Marzo 2026</div>
+        </div>
+    </div>
+</div>
+<!-- Panel Privacidad -->
+<div id="panel-privacidad" style="position:fixed;bottom:-100%;left:0;right:0;background:white;border-radius:20px 20px 0 0;padding:0;z-index:3000;transition:0.4s;box-shadow:0 -4px 20px rgba(0,0,0,0.2);height:80vh;overflow-y:auto;">
+    <div style="background: linear-gradient(135deg, #002e5d, #ff5a00);color:white;padding:16px 20px;border-radius:20px 20px 0 0;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;">
+        <div><h3 style="margin:0;font-size:16px;"> Privacidad</h3><span style="font-size:12px;opacity:0.8;">¿Qué datos usamos?</span></div>
+        <i class="fas fa-times" onclick="cerrarPrivacidad()" style="cursor:pointer;font-size:20px;"></i>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:16px;font-size:14px;color:#333;line-height:1.6;">
+        <p>En <b>UrbanMov</b> nos tomamos tu privacidad en serio. Aquí te explicamos qué información recopilamos y para qué la usamos.</p>
+        <div>
+            <div style="font-weight:800;color:#002e5d;margin-bottom:6px;"> Ubicación</div>
+            <p>Solo se usa para mostrarte en el mapa. No la almacenamos ni la compartimos con terceros.</p>
+        </div>
+        <div>
+            <div style="font-weight:800;color:#002e5d;margin-bottom:6px;"> Chat y Reportes</div>
+            <p>Los mensajes del chat y reportes son públicos y visibles para todos los usuarios. No publiques información personal.</p>
+        </div>
+        <div>
+            <div style="font-weight:800;color:#002e5d;margin-bottom:6px;"> Estadísticas</div>
+            <p>Usamos Google Analytics para contar visitas de forma anónima. No recopilamos nombres ni correos.</p>
+        </div>
+        <div>
+            <div style="font-weight:800;color:#002e5d;margin-bottom:6px;"> Tu nombre en el chat</div>
+            <p>El nombre que escribes en el chat se guarda únicamente en tu dispositivo. UrbanMov no tiene acceso a él.</p>
+        </div>
+        <p style="color:#aaa;font-size:12px;">UrbanMov · Puebla, México · 2026</p>
+    </div>
+</div>
+<!-- Panel Perfil / UMCoins -->
+<!-- Panel Perfil / UMCoins -->
+<div id="panel-perfil" style="position:fixed;bottom:-100%;left:0;right:0;background:#f0f2f5;border-radius:20px 20px 0 0;padding:0;z-index:3000;transition:0.4s;box-shadow:0 -4px 20px rgba(0,0,0,0.2);height:88vh;overflow-y:auto;">
+    
+    <!-- Header con gradiente y avatar -->
+    <div style="background: linear-gradient(135deg, #002e5d, #ff5a00);padding:20px 20px 20px;border-radius:20px 20px 0 0;text-align:center;position:relative;">
+        <i class="fas fa-times" onclick="cerrarPerfil()" style="position:absolute;top:16px;right:20px;cursor:pointer;font-size:20px;color:white;opacity:0.8;"></i>
+        <img id="perfil-avatar-img" src="avatar1.jpeg" onclick="abrirSelectorAvatar()" style="width:80px;height:80px;border-radius:50%;border:3px solid white;margin:0 auto 6px;display:block;cursor:pointer;object-fit:cover;">
+<div style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:6px;">Toca para cambiar</div>
+<div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 6px;" id="perfil-insignia-icon">🌱</div>
+        <div style="font-weight:900;font-size:20px;color:white;" id="perfil-nombre">Cargando...</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-top:3px;" id="perfil-insignia-nombre">Pasajero Nuevo</div>
+    </div>
+
+    <!-- Tarjeta de coins flotante -->
+    <div style="margin:12px 16px 0;background:white;border-radius:16px;padding:16px;box-shadow:0 4px 15px rgba(0,0,0,0.1);display:flex;align-items:center;justify-content:space-between;">
+        <div>
+            <div style="font-size:12px;color:#888;font-weight:600;">UMCoins acumulados</div>
+            <div style="font-size:24px;font-weight:900;color:#002e5d;white-space:nowrap;"><span id="perfil-coins">0</span> <span style="font-size:13px;color:#aaa;">UMCoins</span></div>
+        </div>
+        <div style="width:48px;height:48px;background:linear-gradient(135deg,#FFD700,#FFA500);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;">🪙</div>
+    </div>
+
+    <div style="padding:16px;display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+
+        <!-- Barra de progreso -->
+        <div style="background:white;border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#666;margin-bottom:8px;">
+                <span style="font-weight:700;color:#002e5d;">Progreso</span>
+                <span id="perfil-progreso-texto" style="font-weight:700;color:#0057ff;">0/50</span>
+            </div>
+            <div style="background:#f0f2f5;border-radius:10px;height:8px;">
+                <div id="perfil-barra" style="background:linear-gradient(90deg,#0057ff,#ff5a00);height:8px;border-radius:10px;width:0%;transition:0.5s;"></div>
+            </div>
+        </div>
+
+        <!-- Pasajero del día -->
+        <div style="background:linear-gradient(135deg,#fff3e0,#ffe0b2);border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;">
+            <div style="font-size:28px;">🏆</div>
+            <div>
+                <div style="font-size:11px;color:#e65100;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Pasajero del día</div>
+                <div style="font-size:14px;font-weight:800;color:#002e5d;" id="pasajero-del-dia">Cargando...</div>
+            </div>
+        </div>
+
+        <!-- Insignias -->
+        <div style="background:white;border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+            <div style="font-weight:800;color:#002e5d;margin-bottom:12px;font-size:14px;">Insignias</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+<div class="insignia-item" id="ins-1">Pasajero Nuevo <span style="float:right;font-size:12px;color:#aaa;">0 coins</span></div>
+<div class="insignia-item" id="ins-2">Pasajero Regular <span style="float:right;font-size:12px;color:#aaa;">50 coins</span></div>
+<div class="insignia-item" id="ins-3">Colaborador <span style="float:right;font-size:12px;color:#aaa;">150 coins · Cupones</span></div>
+<div class="insignia-item" id="ins-4">Guía de Puebla <span style="float:right;font-size:12px;color:#aaa;">300 coins · Descuentos</span></div>
+<div class="insignia-item" id="ins-5">Pasajero VIP <span style="float:right;font-size:12px;color:#aaa;">500 coins · Canjear $$$</span></div>
+            </div>
+        </div>
+
+        <!-- Cómo ganar -->
+        <div style="background:white;border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);position:relative;z-index:1;">
+            <div style="font-weight:800;color:#002e5d;margin-bottom:10px;font-size:14px;">¿Cómo ganar UMCoins?</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:#555;padding:8px 12px;background:#f8f9fa;border-radius:8px;">
+                    <span>Abrir la app cada día</span><span style="font-weight:800;color:#0057ff;">+5</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:#555;padding:8px 12px;background:#f8f9fa;border-radius:8px;">
+                    <span>Buscar una ruta</span><span style="font-weight:800;color:#0057ff;">+2</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:#555;padding:8px 12px;background:#f8f9fa;border-radius:8px;">
+                    <span>Mensaje en el chat</span><span style="font-weight:800;color:#0057ff;">+3</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:13px;color:#555;padding:8px 12px;background:#f8f9fa;border-radius:8px;">
+                    <span>Reportar incidente</span><span style="font-weight:800;color:#0057ff;">+10</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+<!-- Encuesta Rápida -->
+<div id="encuesta-flotante">
+    <p>¿Cómo viene tu ruta hoy? <span id="encuesta-ruta-nombre"></span></p>
+    <div class="enc-btns">
+        <button class="enc-btn" style="background:#e8f5e9;" onclick="responderEncuesta('🟢 Bien')">🟢 Bien</button>
+        <button class="enc-btn" style="background:#fff3e0;" onclick="responderEncuesta('🟡 Regular')">🟡 Regular</button>
+        <button class="enc-btn" style="background:#ffebee;" onclick="responderEncuesta('🔴 Mal')">🔴 Mal</button>
+    </div>
+    <button onclick="cerrarEncuesta()" style="width:100%;margin-top:8px;background:none;border:none;color:#aaa;font-size:12px;cursor:pointer;">Omitir</button>
+</div>
+<!-- Tutorial Primera Vez -->
+<div id="tutorial" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;">
+    <div style="background:white;border-radius:20px;padding:24px;width:88%;max-width:380px;text-align:center;">
+        <div id="tut-slide-1">
+            <div style="font-size:52px;">🗺️</div>
+            <h3 style="color:#002e5d;margin:10px 0 6px;">Busca tu ruta</h3>
+            <p style="color:#666;font-size:14px;">Escribe el nombre o número de tu ruta y aparece en el mapa al instante.</p>
+            <button onclick="tutSiguiente(2)" style="margin-top:16px;width:100%;background:#0057ff;color:white;border:none;padding:14px;border-radius:10px;font-weight:800;font-size:15px;cursor:pointer;">Siguiente →</button>
+        </div>
+        <div id="tut-slide-2" style="display:none;">
+            <div style="font-size:52px;">🚨</div>
+            <h3 style="color:#002e5d;margin:10px 0 6px;">Alerta a tu comunidad</h3>
+            <p style="color:#666;font-size:14px;">¿Robo, accidente o atraso? Repórtalo y aparece en el mapa de todos al instante.</p>
+            <button onclick="tutSiguiente(3)" style="margin-top:16px;width:100%;background:#0057ff;color:white;border:none;padding:14px;border-radius:10px;font-weight:800;font-size:15px;cursor:pointer;">Siguiente →</button>
+        </div>
+        <div id="tut-slide-3" style="display:none;">
+            <div style="font-size:52px;">🪙</div>
+            <h3 style="color:#002e5d;margin:10px 0 6px;">Gana UMCoins</h3>
+            <p style="color:#666;font-size:14px;">Por cada reporte, mensaje y ruta buscada ganas puntos y desbloqueas insignias exclusivas.</p>
+            <button onclick="cerrarTutorial()" style="margin-top:16px;width:100%;background:#002e5d;color:white;border:none;padding:14px;border-radius:10px;font-weight:800;font-size:15px;cursor:pointer;">¡Entendido! Explorar UrbanMov 🚌</button>
+        </div>
+    </div>
+</div>
+<!-- Navbar inferior -->
+<div id="navbar-bottom">
+    <div class="nav-item active" onclick="navHome()">
+        <i class="fas fa-map-marked-alt"></i>
+        <span>Mapa</span>
+    </div>
+    <div class="nav-item" onclick="abrirChat()">
+        <i class="fas fa-comments"></i>
+        <span>Chat</span>
+    </div>
+    <div class="nav-item" onclick="abrirReporte()">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>Reportar</span>
+    </div>
+    <div class="nav-item" onclick="location.href='ia.html'">
+        <i class="fas fa-robot"></i>
+        <span>IA</span>
+    </div>
+    <div class="nav-item" onclick="abrirPerfil()">
+        <i class="fas fa-user"></i>
+        <span>Perfil</span>
+    </div>
+</div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+      const firebaseConfig = {
+    apiKey: "AIzaSyD9BM3GgPH0Fpta5AOv0gzpTZ0RJDepE-k",
+    authDomain: "movitransporte-puebla.firebaseapp.com",
+    databaseURL: "https://movitransporte-puebla-default-rtdb.firebaseio.com",
+    projectId: "movitransporte-puebla",
+    storageBucket: "movitransporte-puebla.firebasestorage.app",
+    messagingSenderId: "1026517136643",
+    appId: "1:1026517136643:web:595273b5f87b2a5228a536"
+};
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const db = firebase.database();
+var map, lineaActiva, busMarker, busInterval;
+var tipoReporteSeleccionado = "";
+
+var pinReporte = null;
+var modoReporte = false;
+var miUbicacionMarker = null;
+var miLatActual = null;
+var miLngActual = null;
+var lineaCaminata = null;
+var miUbicacionId = 'user_' + Math.random().toString(36).substr(2, 9);
+// BASE DE DATOS DE RUTAS — agrega aquí todas las que quieras
+const RUTAS = {
+    "68B": {
+        nombre: "Ruta 68B — SantaMaria xonacatepex → Centro",
+        color: "#1E88E5",
+        paradas: "SantaMaria xonacatepex → La Resurrección → Centro → 11 Norte",
+        duracion: 100,    // minutos promedio
+        frecuencia: 10,   // cada cuántos minutos sale uno
+        inicioOp: 6,      // hora de inicio (6am)
+        finOp: 21.5,      // hora de fin (21:30)
+        coords: [
+    [19.0689, -98.1170],
+    [19.0560, -98.1351],
+    [19.0571, -98.1397],
+    [19.0563, -98.1399],
+    [19.0558, -98.1407],
+    [19.0555, -98.1415],
+    [19.0545, -98.1439],
+    [19.0544, -98.1437],
+    [19.0542, -98.1432],
+    [19.0522, -98.1439],
+    [19.0508, -98.1447],
+    [19.0504, -98.1448],
+    [19.0505, -98.1450],
+    [19.0509, -98.1452],
+    [19.0511, -98.1454],
+    [19.0512, -98.1470],
+    [19.0512, -98.1472],
+    [19.0512, -98.1475],
+    [19.0502, -98.1499],
+    [19.0502, -98.1501],
+    [19.0506, -98.1509],
+    [19.0508, -98.1510],
+    [19.0493, -98.1534],
+    [19.0493, -98.1536],
+    [19.0498, -98.1540],
+    [19.0506, -98.1547],
+    [19.0519, -98.1555],
+    [19.0541, -98.1571],
+    [19.0542, -98.1574],
+    [19.0553, -98.1583],
+    [19.0552, -98.1586],
+    [19.0497, -98.1626],
+    [19.0515, -98.1659],
+    [19.0504, -98.1670],
+    [19.0510, -98.1674],
+    [19.0511, -98.1675],
+    [19.0505, -98.1681],
+    [19.0474, -98.1718],
+    [19.0459, -98.1792],
+    [19.0448, -98.1834],
+    [19.0444, -98.1859],
+    [19.0453, -98.1901],
+    [19.0457, -98.1905],
+    [19.0459, -98.1910],
+    [19.0459, -98.1917],
+    [19.0513, -98.2025],
+    [19.0529, -98.2015],
+    [19.0482, -98.1925],
+    [19.0499, -98.1915],
+    [19.0486, -98.1888],
+    [19.0481, -98.1884],
+    [19.0479, -98.1880],
+    [19.0461, -98.1824],
+    [19.0457, -98.1819],
+    [19.0453, -98.1817],
+    [19.0458, -98.1794],
+    [19.0473, -98.1718],
+    [19.0505, -98.1675],
+    [19.0496, -98.1666]
+]
+    },
+    "Azteca C": {
+        nombre: "Ruta Azteca C — Encinar → La Noria",
+        color: "#43A047",
+        paradas: "Encinar → Bosques Amalucan → Gardenias → La Noria",
+        duracion: 125,
+        frecuencia: 7,
+        inicioOp: 6,
+        finOp: 22,
+        coords: [
+ [19.058193, -98.2233],
+ [19.056806, -98.221913],
+ [19.058238, -98.216489],
+ [19.058564, -98.216023],
+[19.007639, -98.149363],
+ [19.007185, -98.148792],
+ [19.018431, -98.266232],
+ [19.065673, -98.141056],
+ [19.067668, -98.139507],
+ [19.070002, -98.137757],
+ [19.071293, -98.134150],
+ [19.071853, -98.131434],
+ [19.071619, -98.131175],
+ [19.073129, -98.129895],
+ [19.074334, -98.128895],
+ [19.075380, -98.128220],
+ [19.073996, -98.126010],
+[19.072639, -98.127941],
+ [19.071233, -98.129100],
+[19.070751, -98.128450],
+[19.070495, -98.127508],
+[19.070841, -98.126470],
+[19.071664, -98.126393],
+ [19.071870, -98.126838]
+        ]
+    },
+    "1": {
+        nombre: "Ruta 1 — Recorrido Ciudad",
+        color: "#FB8C00",
+        paradas: "Varios ramales — recorre gran parte de la ciudad",
+        duracion: 147,
+        frecuencia: 10,
+        inicioOp: 6,
+        finOp: 22,
+        coords: [
+    [19.0509, -98.1472],
+    [19.0423, -98.1474],
+    [19.0421, -98.1474],
+    [19.0420, -98.1475],
+    [19.0420, -98.1491],
+    [19.0428, -98.1543],
+    [19.0451, -98.1598],
+    [19.0479, -98.1646],
+    [19.0472, -98.1667],
+    [19.0451, -98.1723],
+    [19.0449, -98.1748],
+    [19.0440, -98.1791],
+    [19.0454, -98.1796],
+    [19.0458, -98.1794],
+    [19.0445, -98.1847],
+    [19.0444, -98.1859],
+    [19.0453, -98.1900],
+    [19.0465, -98.1915],
+    [19.0475, -98.1930],
+    [19.0482, -98.1925],
+    [19.0521, -98.2000],
+    [19.0551, -98.2059],
+    [19.0514, -98.2079],
+    [19.0459, -98.2111],
+    [19.0482, -98.2158],
+    [19.0505, -98.2144],
+    [19.0489, -98.2113],
+    [19.0521, -98.2093],
+    [19.0491, -98.2038],
+    [19.0514, -98.2024],
+    [19.0468, -98.1934],
+    [19.0490, -98.1921],
+    [19.0500, -98.1915],
+    [19.0496, -98.1909],
+    [19.0477, -98.1874],
+    [19.0466, -98.1837],
+    [19.0451, -98.1845],
+    [19.0448, -98.1835],
+    [19.0453, -98.1817],
+    [19.0437, -98.1805],
+    [19.0431, -98.1808],
+    [19.0440, -98.1629],
+    [19.0441, -98.1599],
+    [19.0438, -98.1586],
+    [19.0428, -98.1556],
+    [19.0417, -98.1437],
+    [19.0420, -98.1440],
+    [19.0421, -98.1467]
+]
+    },
+    "72": {
+        nombre: "Ruta 72 — Villa Deportiva → Misiones",
+        color: "#8E24AA",
+        paradas: "Villa Deportiva → Centro → Misiones",
+        duracion: 90,
+        frecuencia: 8,
+        inicioOp: 6,
+        finOp: 22,
+        coords: [
+            [19.0600, -98.2100],[19.0500, -98.2000],[19.0400, -98.1900],[19.0300, -98.1800]
+        ]
+    },
+    "33": {
+        nombre: "Ruta 33 — Héroes → Centro",
+        color: "#E53935",
+        paradas: "Héroes → San Antonio → Centro",
+        duracion: 90,
+        frecuencia: 10,
+        inicioOp: 6,
+        finOp: 22,
+        coords: [
+            [19.0650, -98.1800],[19.0550, -98.1900],[19.0450, -98.2000],[19.0350, -98.2050]
+        ]
+    },
+    "4": {
+        nombre: "Ruta 4 — Valsequillo → Centro",
+        color: "#00ACC1",
+        paradas: "Valsequillo → Periférico → Centro",
+        duracion: 52,
+        frecuencia: 12,
+        inicioOp: 6,
+        finOp: 21.5,
+        coords: [
+            [18.9740, -98.1924],[19.0000, -98.2000],[19.0200, -98.2010],[19.0439, -98.1980]
+        ]
+    },
+    "A1": {
+        nombre: "A1 terminal tlaxcalancingo - san bearbé temoxtitla",
+        color: "#ff5a00",
+        paradas: "tlaxcalancingo → temoxtitla",
+        duracion: 35,
+        frecuencia: 10,
+        inicioOp: 6,
+        finOp: 21.5,
+        coords: [
+[19.033013,-98.268790],[19.032621,-98.268992],[19.032553,-98.269856],
+[19.032118,-98.272104],[19.031810,-98.273202],[19.030571,-98.275994],
+[19.029851,-98.279852],[19.028846,-98.281302],[19.027954,-98.284370],
+[19.025931,-98.289045],[19.023771,-98.296872],[19.023134,-98.305003],
+[19.023324,-98.307195],[19.023319,-98.308122],[19.023057,-98.308776],
+[19.022156,-98.309551],[19.020955,-98.311233],[19.020122,-98.311488],
+[19.019757,-98.311511],[19.019624,-98.312373],[19.019410,-98.313630],
+[19.018306,-98.315124],[19.014264,-98.319694],[19.009129,-98.322952],
+[19.001103,-98.327615],[19.000518,-98.332094],[18.999949,-98.332374],
+[18.998397,-98.332916],[18.997604,-98.331892],[18.996873,-98.330830],
+[18.995882,-98.329489],[18.994801,-98.328678],[18.994353,-98.328262],
+[18.994005,-98.328201],[18.993313,-98.327939],[18.992324,-98.326966],
+[18.990994,-98.324836],[18.989675,-98.324226],[18.989045,-98.323638]
+        ]
+    }
+,"RUTA-L1-R": {nombre:"Línea 1 RUTA — Tlaxcalancingo → Chachapa",color:"#EF9A9A",paradas:"Tlaxcalancingo → CAPU → Centro → Amozoc → Chachapa",duracion:60,frecuencia:5,inicioOp:5,finOp:23,coords:[[19.054153, -98.108836], [19.053999, -98.112304], [19.053953, -98.114115], [19.053938, -98.114734], [19.053917, -98.115672], [19.053842, -98.119071], [19.053814, -98.120324], [19.054003, -98.123204], [19.054151, -98.124715], [19.054516, -98.127472], [19.05516, -98.132928], [19.055612, -98.13523], [19.055942, -98.136328], [19.056077, -98.136896], [19.056303, -98.138007], [19.0564, -98.139549], [19.056531, -98.140736], [19.056608, -98.141209], [19.056755, -98.14156], [19.057136, -98.142262], [19.058324, -98.14411], [19.058934, -98.145102], [19.05928, -98.145767], [19.059478, -98.146174], [19.059773, -98.146954], [19.059935, -98.147932], [19.061139, -98.154275], [19.06134, -98.15527], [19.06135, -98.155503], [19.061903, -98.15971], [19.0625, -98.164238], [19.062818, -98.16736], [19.063185, -98.170358], [19.063364, -98.171432], [19.064395, -98.179762], [19.064546, -98.180803], [19.064656, -98.181929], [19.064702, -98.18253], [19.064727, -98.182914], [19.064787, -98.183798], [19.064916, -98.18587], [19.064972, -98.186739], [19.065058, -98.18961], [19.065035, -98.189725], [19.064995, -98.190182], [19.065031, -98.19051], [19.065084, -98.190711], [19.065091, -98.191054], [19.065072, -98.191292], [19.064902, -98.191626], [19.06477, -98.191963], [19.064627, -98.192663], [19.064324, -98.194028], [19.064249, -98.194342], [19.063958, -98.19512], [19.063636, -98.196598], [19.063515, -98.197153], [19.063341, -98.197696], [19.063118, -98.198582], [19.06302, -98.198892], [19.062732, -98.199962], [19.062425, -98.201093], [19.06209, -98.202208], [19.061432, -98.204006], [19.060967, -98.204857], [19.06073, -98.20529], [19.059841, -98.20699], [19.059073, -98.208424], [19.058633, -98.209309], [19.057679, -98.211026], [19.057178, -98.21195], [19.057437, -98.212468], [19.058175, -98.213948], [19.058366, -98.214335], [19.057739, -98.215065], [19.057946, -98.215402], [19.058701, -98.216896], [19.058929, -98.217337], [19.059467, -98.218391], [19.058937, -98.218742], [19.058642, -98.219097], [19.058565, -98.219293], [19.058573, -98.219418], [19.058622, -98.219569], [19.058464, -98.219739], [19.058306, -98.219848], [19.058202, -98.219896], [19.058086, -98.219914], [19.057944, -98.219914], [19.057811, -98.21987], [19.057664, -98.219771], [19.057208, -98.220126], [19.056411, -98.220685], [19.055796, -98.221132], [19.053762, -98.222592], [19.053288, -98.222817], [19.052955, -98.223053], [19.052573, -98.223399], [19.052437, -98.223763], [19.051588, -98.225777], [19.051156, -98.226803], [19.050571, -98.2282], [19.050464, -98.228455], [19.050065, -98.229407], [19.049579, -98.230567], [19.049045, -98.231675], [19.048445, -98.232513], [19.047666, -98.233134], [19.046546, -98.233984], [19.045829, -98.234547], [19.0444, -98.235631], [19.043961, -98.235892], [19.042614, -98.236899], [19.041725, -98.237564], [19.041223, -98.23798], [19.040879, -98.238316], [19.040515, -98.238653], [19.040221, -98.23908], [19.039813, -98.240021], [19.038182, -98.244575], [19.037824, -98.245592], [19.037315, -98.247062], [19.036272, -98.250051], [19.036244, -98.250461], [19.036213, -98.250903], [19.036184, -98.252209], [19.036071, -98.253474], [19.03594, -98.254469], [19.035589, -98.256097], [19.035361, -98.257063], [19.034745, -98.258805], [19.034098, -98.260212], [19.03355, -98.261334], [19.033302, -98.261926], [19.033107, -98.262391], [19.032857, -98.263615], [19.032517, -98.265222], [19.032394, -98.266842], [19.032386, -98.267263], [19.032283, -98.268707], [19.032214, -98.269199]]}
+,"RUTA-L2-I": {nombre:"Línea 2 RUTA — San Ramón → Diagonal Defensores",color:"#1E88E5",paradas:"San Ramón → 11 Norte → Centro → Diagonal Defensores",duracion:50,frecuencia:5,inicioOp:5,finOp:23,coords:[[18.967306, -98.266973], [18.968497, -98.266522], [18.968906, -98.266378], [18.969233, -98.26624], [18.969395, -98.266154], [18.969541, -98.266062], [18.969648, -98.265969], [18.969913, -98.265677], [18.971224, -98.264079], [18.972003, -98.262913], [18.97269, -98.261836], [18.973455, -98.260828], [18.975721, -98.257799], [18.976387, -98.257067], [18.977407, -98.256277], [18.980395, -98.253936], [18.981344, -98.253226], [18.983389, -98.251658], [18.984032, -98.251207], [18.984683, -98.250697], [18.9891, -98.247236], [18.989441, -98.246968], [18.991099, -98.24564], [18.992029, -98.244924], [18.992383, -98.244692], [18.993435, -98.243934], [18.994567, -98.243119], [18.994833, -98.24294], [18.995423, -98.242522], [18.996396, -98.241699], [18.997025, -98.241116], [18.998055, -98.240498], [18.998503, -98.240279], [18.999003, -98.240114], [19.000793, -98.239771], [19.003046, -98.23891], [19.003474, -98.238699], [19.00386, -98.238509], [19.004748, -98.238187], [19.006417, -98.237493], [19.006644, -98.237356], [19.007014, -98.237103], [19.01045, -98.234923], [19.012805, -98.233412], [19.013851, -98.232746], [19.015052, -98.231981], [19.015886, -98.231433], [19.016183, -98.231331], [19.016382, -98.231243], [19.017308, -98.230731], [19.017402, -98.23063], [19.017702, -98.230308], [19.017813, -98.230189], [19.018265, -98.22965], [19.0186, -98.229169], [19.018919, -98.228456], [19.01931, -98.228044], [19.019705, -98.227671], [19.020092, -98.227306], [19.020952, -98.226522], [19.021619, -98.226082], [19.022901, -98.224635], [19.02476, -98.222864], [19.024842, -98.222771], [19.025743, -98.221917], [19.025974, -98.221684], [19.027275, -98.220429], [19.028567, -98.219091], [19.028968, -98.218722], [19.029927, -98.217811], [19.030244, -98.217545], [19.032906, -98.215652], [19.034802, -98.214359], [19.035061, -98.214145], [19.03573, -98.213636], [19.036432, -98.213011], [19.036865, -98.212716], [19.037303, -98.212414], [19.038087, -98.211914], [19.038987, -98.211438], [19.039881, -98.210939], [19.040642, -98.210538], [19.041414, -98.210131], [19.042183, -98.209716], [19.042974, -98.209272], [19.043699, -98.208844], [19.04446, -98.20842], [19.0452, -98.208036], [19.046028, -98.207548], [19.046732, -98.20716], [19.047519, -98.206725], [19.048261, -98.206265], [19.049114, -98.20576], [19.049866, -98.205314], [19.050644, -98.204855], [19.051367, -98.204422], [19.052093, -98.204008], [19.052897, -98.203567], [19.05363, -98.203114], [19.054392, -98.202658], [19.055132, -98.2022], [19.055992, -98.201636], [19.056315, -98.200794], [19.056817, -98.199506], [19.057013, -98.199052], [19.057183, -98.198538], [19.057542, -98.197814], [19.057615, -98.197682], [19.058221, -98.196906], [19.058868, -98.19637], [19.059145, -98.19621], [19.059625, -98.195943], [19.059967, -98.195848], [19.060345, -98.195777], [19.061858, -98.195509], [19.062585, -98.195382], [19.062808, -98.195342], [19.063958, -98.19512]]}
+,"RUTA-L3": {nombre:"Línea 3 RUTA — Valsequillo → CAPU",color:"#43A047",paradas:"Valsequillo → Centro → CAPU",duracion:50,frecuencia:5,inicioOp:5,finOp:23,coords:[[19.074255, -98.202699], [19.073426, -98.196583], [19.071295, -98.192563], [19.068429, -98.192051], [19.064971, -98.191141], [19.061075, -98.191919], [19.055166, -98.193014], [19.051648, -98.190734], [19.04592, -98.189748], [19.040492, -98.19338], [19.039015, -98.195854], [19.033069, -98.199005], [19.030525, -98.201633], [19.028623, -98.20356], [19.026637, -98.206443], [19.026182, -98.209358], [19.026226, -98.21343], [19.022411, -98.212556], [19.016945, -98.21033], [19.012664, -98.209107], [19.009306, -98.207928], [18.999257, -98.204377], [18.979018, -98.196695]]}
+,"ALIM-Alimentadora-R1": {nombre:"Alimentadora R1",color:"#FF7043",paradas:"Alimentadora R1",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[19.00044, -98.33197], [19.000385, -98.332205], [19.000302, -98.332273], [19.000259, -98.332355], [19.000293, -98.332502], [19.000377, -98.332594], [19.000507, -98.332556], [19.000521, -98.332378], [19.000442, -98.332113], [19.000564, -98.329406], [19.000708, -98.328479], [19.00095, -98.327846], [19.001393, -98.327311], [19.002028, -98.326862], [19.003173, -98.326194], [19.00506, -98.325205], [19.006995, -98.323991], [19.009959, -98.322286], [19.01172, -98.321203], [19.013235, -98.320272], [19.014333, -98.319561], [19.01544, -98.318146], [19.016705, -98.316865], [19.017986, -98.31528], [19.018818, -98.314348], [19.019122, -98.313954], [19.019414, -98.313223], [19.019499, -98.312637], [19.019652, -98.310873], [19.019816, -98.309398], [19.020063, -98.308736], [19.02039, -98.308182], [19.02094, -98.307412], [19.021847, -98.306225], [19.022429, -98.305388], [19.022696, -98.304929], [19.023022, -98.304156], [19.023091, -98.303462], [19.02335, -98.300738], [19.023454, -98.299681], [19.02373, -98.296458], [19.023978, -98.295315], [19.024422, -98.293804], [19.024907, -98.292139], [19.025461, -98.290304], [19.025853, -98.289044], [19.026316, -98.288011], [19.027322, -98.285934], [19.027751, -98.284786], [19.027997, -98.283952], [19.028234, -98.28305], [19.028449, -98.282315], [19.028674, -98.28155], [19.028928, -98.281057], [19.029295, -98.280507], [19.029728, -98.2799], [19.030031, -98.279455], [19.03025, -98.278986], [19.03034, -98.278439], [19.030367, -98.277813], [19.030394, -98.276752], [19.03046, -98.276157], [19.030583, -98.275668], [19.030929, -98.274926], [19.031312, -98.274074], [19.031738, -98.273078], [19.032064, -98.272137], [19.032247, -98.271337], [19.032485, -98.269994], [19.032595, -98.268865], [19.033028, -98.268733]]}
+,"ALIM-Alimentadora-R2": {nombre:"Alimentadora R2",color:"#AB47BC",paradas:"Alimentadora R2",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[18.977005, -98.30169], [18.977209, -98.301415], [18.977484, -98.301062], [18.977871, -98.300593], [18.978222, -98.300175], [18.978372, -98.29998], [18.978445, -98.299847], [18.978559, -98.299528], [18.978695, -98.29884], [18.978754, -98.29827], [18.978781, -98.297862], [18.978914, -98.297613], [18.979142, -98.297099], [18.979527, -98.296851], [18.980088, -98.296457], [18.980253, -98.296469], [18.980438, -98.296685], [18.980617, -98.297313], [18.98077, -98.29743], [18.981003, -98.297428], [18.981091, -98.297342], [18.981302, -98.297068], [18.981668, -98.296286], [18.981881, -98.295841], [18.982381, -98.295269], [18.983284, -98.294383], [18.983688, -98.294177], [18.984393, -98.293848], [18.98515, -98.293552], [18.985979, -98.293303], [18.986878, -98.293221], [18.987288, -98.293164], [18.987634, -98.293004], [18.98824, -98.292566], [18.988436, -98.292471], [18.988746, -98.292503], [18.989052, -98.292573], [18.989314, -98.29268], [18.989628, -98.292862], [18.98991, -98.293047], [18.990215, -98.29314], [18.990571, -98.293144], [18.990845, -98.293145], [18.991047, -98.293321], [18.99113, -98.293544], [18.991549, -98.294507], [18.991754, -98.294694], [18.992617, -98.295015], [18.992968, -98.295031], [18.993237, -98.294942], [18.993756, -98.29477], [18.996265, -98.294876], [18.998484, -98.295705], [18.998716, -98.295757], [18.999122, -98.295771], [18.999503, -98.295669], [19.000183, -98.295538], [19.001309, -98.295291], [19.003107, -98.294965], [19.004441, -98.295202], [19.005626, -98.295401], [19.006224, -98.295491], [19.007145, -98.295547], [19.00764, -98.295562], [19.008969, -98.295773], [19.010179, -98.295999], [19.011861, -98.296165], [19.01364, -98.296398], [19.014536, -98.296503], [19.016304, -98.296776], [19.018087, -98.297004], [19.019667, -98.297196], [19.02065, -98.297218], [19.021257, -98.297178], [19.022265, -98.297135], [19.023503, -98.297107], [19.023713, -98.296922], [19.023748, -98.296577], [19.02381, -98.295937], [19.024108, -98.29497], [19.024895, -98.29213], [19.025556, -98.290055], [19.025848, -98.289091], [19.026245, -98.288163], [19.026684, -98.287268], [19.027273, -98.286112], [19.027776, -98.284757], [19.028197, -98.283181], [19.028638, -98.2817], [19.028955, -98.281051], [19.029616, -98.280108], [19.029941, -98.279612], [19.030228, -98.27912], [19.0304, -98.278432], [19.03043, -98.27771], [19.030467, -98.276706], [19.030528, -98.276134], [19.03064, -98.275714], [19.030924, -98.2751], [19.031589, -98.273653], [19.031895, -98.272849], [19.03207, -98.272381], [19.032221, -98.271667], [19.032519, -98.270113], [19.032653, -98.269116], [19.033088, -98.268829]]}
+,"ALIM-Alimentadora-R3": {nombre:"Alimentadora R3",color:"#26C6DA",paradas:"Alimentadora R3",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[19.032978, -98.268797], [19.032638, -98.26899], [19.032397, -98.269292], [19.032347, -98.269882], [19.032033, -98.271454], [19.03179, -98.272657], [19.031267, -98.273744], [19.030665, -98.27515], [19.030322, -98.276125], [19.03025, -98.27725], [19.030189, -98.278404], [19.029997, -98.279144], [19.029631, -98.279795], [19.029014, -98.280623], [19.028548, -98.281488], [19.027974, -98.283504], [19.027638, -98.284689], [19.027244, -98.285825], [19.026484, -98.287377], [19.025767, -98.288897], [19.02521, -98.290788], [19.024662, -98.292558], [19.024013, -98.295014], [19.023664, -98.296465], [19.023443, -98.29881], [19.02323, -98.30123], [19.023002, -98.303458], [19.022819, -98.304693], [19.022, -98.30599], [19.021147, -98.307137], [19.020492, -98.308078], [19.01988, -98.3091], [19.019708, -98.309961], [19.019611, -98.311375], [19.020436, -98.311425], [19.020898, -98.311308], [19.021602, -98.310306], [19.022207, -98.309441], [19.022554, -98.309258], [19.023701, -98.311107], [19.02459, -98.312456], [19.026343, -98.314944], [19.026916, -98.315672], [19.027611, -98.316425], [19.028011, -98.316845], [19.028384, -98.317422], [19.029242, -98.318895], [19.029346, -98.31883], [19.03154, -98.317642], [19.032359, -98.318866], [19.032456, -98.318825], [19.035517, -98.316819], [19.036574, -98.316482], [19.037487, -98.316178], [19.039982, -98.315799], [19.040027, -98.31556], [19.037451, -98.315928], [19.036682, -98.316163], [19.035304, -98.316644], [19.034477, -98.317137], [19.033713, -98.317675], [19.03312, -98.318057], [19.0329, -98.318272], [19.032547, -98.31854], [19.032393, -98.318621], [19.031768, -98.317701], [19.031595, -98.317489], [19.029292, -98.318704], [19.028448, -98.317296], [19.028021, -98.316658], [19.027394, -98.316027], [19.026976, -98.315575], [19.025925, -98.314097], [19.025329, -98.313266], [19.024345, -98.311853], [19.023669, -98.310895], [19.02267, -98.309208], [19.023058, -98.308937], [19.023341, -98.307864], [19.023305, -98.307306], [19.023253, -98.30666], [19.023144, -98.305444], [19.023032, -98.304427], [19.023113, -98.303926], [19.02326, -98.30257], [19.02336, -98.301395], [19.023512, -98.300116], [19.023575, -98.29919], [19.023761, -98.297147], [19.024194, -98.2949], [19.024568, -98.293599], [19.02504, -98.291899], [19.025553, -98.290243], [19.025904, -98.289154], [19.026152, -98.288504], [19.026602, -98.287587], [19.026952, -98.28688], [19.027292, -98.286207], [19.027585, -98.285473], [19.02804, -98.284078], [19.028266, -98.283199], [19.028695, -98.28172], [19.028932, -98.281207], [19.029059, -98.281006], [19.029356, -98.280569], [19.029709, -98.280078], [19.030054, -98.279542], [19.030297, -98.279079], [19.03046, -98.278498], [19.030481, -98.278096], [19.030502, -98.277154], [19.030536, -98.276625], [19.03059, -98.276134], [19.030699, -98.275719], [19.030949, -98.275142], [19.031649, -98.273629], [19.031999, -98.272729], [19.03212, -98.272404], [19.032281, -98.271655], [19.032518, -98.270476], [19.032605, -98.269935], [19.032713, -98.269156], [19.033077, -98.268908], [19.032713, -98.269156], [19.033077, -98.268908]]}
+,"ALIM-Alimentadora-R4": {nombre:"Alimentadora R4",color:"#66BB6A",paradas:"Alimentadora R4",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[19.005653, -98.288347], [19.005721, -98.288427], [19.006619, -98.289578], [19.007112, -98.290187], [19.007821, -98.291324], [19.00825, -98.292218], [19.008569, -98.292773], [19.009266, -98.293842], [19.010361, -98.292929], [19.011019, -98.292369], [19.012084, -98.291753], [19.012533, -98.291441], [19.013535, -98.290713], [19.014114, -98.290334], [19.014828, -98.289817], [19.016246, -98.28884], [19.017147, -98.288136], [19.018131, -98.287439], [19.018724, -98.286975], [19.019066, -98.286736], [19.019769, -98.286273], [19.021305, -98.285049], [19.020682, -98.28396], [19.019856, -98.282548], [19.019264, -98.281521], [19.019216, -98.281365], [19.01934, -98.281194], [19.019467, -98.281066], [19.018729, -98.279758], [19.019713, -98.27899], [19.020318, -98.27854], [19.020794, -98.27821], [19.021959, -98.277486], [19.02216, -98.277415], [19.023029, -98.27787], [19.023144, -98.277867], [19.023569, -98.277553], [19.02503, -98.276472], [19.0257, -98.276019], [19.026974, -98.275233], [19.02792, -98.276718], [19.029418, -98.275334], [19.029851, -98.274934], [19.03088, -98.273992], [19.0312, -98.27378], [19.031458, -98.273667], [19.031743, -98.272929], [19.03198, -98.272264], [19.032281, -98.270859], [19.032375, -98.270317], [19.032454, -98.269927], [19.032589, -98.269044], [19.033034, -98.268774]]}
+,"ALIM-Alimentadora-R4-Regreso": {nombre:"Alimentadora R4 Regreso",color:"#FFA726",paradas:"Alimentadora R4 Regreso",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[19.033044, -98.268796], [19.032606, -98.269064], [19.032543, -98.269705], [19.032248, -98.27127], [19.032001, -98.2724], [19.031536, -98.273649], [19.03121, -98.27382], [19.030938, -98.274012], [19.02934, -98.275467], [19.028466, -98.276284], [19.027887, -98.276784], [19.027339, -98.277186], [19.026777, -98.277378], [19.024538, -98.279157], [19.023627, -98.277579], [19.023106, -98.277954], [19.022121, -98.277508], [19.021897, -98.277605], [19.021303, -98.277965], [19.020331, -98.278608], [19.019652, -98.279118], [19.018801, -98.279761], [19.019531, -98.281068], [19.019366, -98.281243], [19.019272, -98.281417], [19.019815, -98.282309], [19.020386, -98.283319], [19.020988, -98.284329], [19.021458, -98.285056], [19.020984, -98.285476], [19.020005, -98.286194], [19.01884, -98.286981], [19.017374, -98.288072], [19.016175, -98.288987], [19.014848, -98.289899], [19.01362, -98.290736], [19.012841, -98.291315], [19.012304, -98.291664], [19.011526, -98.292138], [19.011045, -98.29242], [19.010599, -98.292791], [19.009748, -98.293517], [19.009146, -98.294005], [19.008291, -98.294682], [19.007531, -98.295312], [19.007266, -98.295594], [19.006459, -98.295592], [19.005362, -98.295441], [19.003157, -98.295044], [19.002516, -98.29408], [19.0026, -98.294044], [19.003156, -98.294875], [19.003546, -98.29497], [19.004207, -98.295083], [19.005381, -98.295272], [19.006447, -98.295458], [19.007193, -98.295501], [19.009191, -98.293853], [19.008521, -98.29283], [19.007755, -98.291351], [19.007163, -98.29044], [19.00657, -98.289664], [19.005634, -98.288427]]}
+ ,"ALIM-Alimentadora-R6": {nombre:"Alimentadora R6",color:"#EC407A",paradas:"Alimentadora R6",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[19.016013, -98.266985], [19.016136, -98.267007], [19.016193, -98.26683], [19.016183, -98.266502], [19.016221, -98.266142], [19.01626, -98.265883], [19.016335, -98.265409], [19.016404, -98.265029], [19.016464, -98.264698], [19.016535, -98.264132], [19.016603, -98.263746], [19.01668, -98.263075], [19.016813, -98.262812], [19.017035, -98.262712], [19.017155, -98.262651], [19.01764, -98.262763], [19.018076, -98.262846], [19.018386, -98.262937], [19.018376, -98.263131], [19.018377, -98.263632], [19.018337, -98.264023], [19.018141, -98.264276], [19.017794, -98.264398], [19.01724, -98.264311], [19.016182, -98.264172], [19.015455, -98.264101], [19.013729, -98.263666], [19.012509, -98.262735], [19.012044, -98.26175], [19.012052, -98.260553], [19.012485, -98.25952], [19.012972, -98.258742], [19.014127, -98.256861], [19.015555, -98.254542], [19.016412, -98.253209], [19.017706, -98.251206], [19.018751, -98.249395], [19.019502, -98.248049], [19.019997, -98.247431], [19.020498, -98.246969], [19.021096, -98.246256], [19.021691, -98.245483], [19.021984, -98.244829], [19.022237, -98.243981], [19.022584, -98.243264], [19.023113, -98.242373], [19.023883, -98.240967], [19.024398, -98.240119], [19.024839, -98.239709], [19.025361, -98.239375], [19.025653, -98.238942], [19.026153, -98.237392], [19.026509, -98.236774], [19.026873, -98.236458], [19.027261, -98.236015], [19.027499, -98.235615], [19.027817, -98.234717], [19.028169, -98.234037], [19.028738, -98.233067], [19.02935, -98.232024], [19.029978, -98.230992], [19.030435, -98.230299], [19.030788, -98.22986], [19.031276, -98.229409], [19.031726, -98.229096], [19.032163, -98.228897], [19.032528, -98.228715], [19.033019, -98.228399], [19.033415, -98.228159], [19.033872, -98.227921], [19.034493, -98.227529], [19.034835, -98.22727], [19.035249, -98.226988], [19.035758, -98.226668], [19.036174, -98.226456], [19.036588, -98.226243], [19.036821, -98.226169], [19.037047, -98.226174], [19.037203, -98.226336], [19.037387, -98.226534], [19.037583, -98.226582], [19.037763, -98.22654], [19.038153, -98.226302], [19.038474, -98.226099], [19.038682, -98.225947], [19.038805, -98.225918], [19.038934, -98.225977], [19.03933, -98.226334], [19.039588, -98.226594], [19.039832, -98.227055], [19.040401, -98.228105], [19.040581, -98.228439], [19.041003, -98.229188], [19.041378, -98.229914], [19.042112, -98.231275], [19.043021, -98.232944], [19.043494, -98.233926], [19.044096, -98.235038], [19.044314, -98.235492], [19.044637, -98.235935], [19.044869, -98.236122], [19.045218, -98.236137], [19.045577, -98.236191], [19.045949, -98.236321], [19.046394, -98.236444], [19.047104, -98.23663], [19.047936, -98.236799], [19.048327, -98.236875], [19.048504, -98.237065], [19.048986, -98.237882], [19.049328, -98.238258], [19.049633, -98.238417], [19.050026, -98.238489], [19.050502, -98.23844], [19.051045, -98.238342], [19.051349, -98.23826], [19.052023, -98.238177], [19.052318, -98.23814], [19.052318, -98.238], [19.051935, -98.237241], [19.051464, -98.236305], [19.050954, -98.235323], [19.051371, -98.235093], [19.052308, -98.234593], [19.052825, -98.234274], [19.053575, -98.233861], [19.05409, -98.233567], [19.054522, -98.233332], [19.054951, -98.2331], [19.055283, -98.232926], [19.055563, -98.232752], [19.055637, -98.232519], [19.055685, -98.232188], [19.055768, -98.231595], [19.055829, -98.231114], [19.055894, -98.230902], [19.056006, -98.230851], [19.056068, -98.230719], [19.056039, -98.230609], [19.055939, -98.230496], [19.055795, -98.230439], [19.055474, -98.230287], [19.054911, -98.230021], [19.05457, -98.229835], [19.053997, -98.229356], [19.05366, -98.228941], [19.053389, -98.228417], [19.053214, -98.227948], [19.05317, -98.227716],
+ [19.053111,-98.227303], [19.053127, -98.226965], [19.053175, -98.226481], [19.05327, -98.226089], [19.053428, -98.225666], [19.053523, -98.22542], [19.053745, -98.224987], [19.054004, -98.224656], [19.054145, -98.224533], [19.05441, -98.224351], [19.05462, -98.224235], [19.05464, -98.224154], [19.054268, -98.223427], [19.054032, -98.222944], [19.054007, -98.222764], [19.05412, -98.222584], [19.05429, -98.222465], [19.054564, -98.222271], [19.054834, -98.222098], [19.055139, -98.221855], [19.055464, -98.221638], [19.055971, -98.221286], [19.056262, -98.221047], [19.056508, -98.220914], [19.056639, -98.220905], [19.056757, -98.221036], [19.057024, -98.221407], [19.057389, -98.221888], [19.057528, -98.222021], [19.057607, -98.222035], [19.058045, -98.221669], [19.058822, -98.221018], [19.05935, -98.220612], [19.059753, -98.220206], [19.059969, -98.220053], [19.060092, -98.220042], [19.060279, -98.220098], [19.060348, -98.219892], [19.060068, -98.219356], [19.059802, -98.21881], [19.059628, -98.218489], [19.059669, -98.218421], [19.060008, -98.218155], [19.060765, -98.217602], [19.061638, -98.216993], [19.062314, -98.216512], [19.062664, -98.216218], [19.06362, -98.215523], [19.064625, -98.214763], [19.065018, -98.214447], [19.065378, -98.213977], [19.065993, -98.213161], [19.066817, -98.21208], [19.067816, -98.210904], [19.068408, -98.210137], [19.06888, -98.2096], [19.069406, -98.208904], [19.070125, -98.208028], [19.071068, -98.206881], [19.07158, -98.206247], [19.072283, -98.205403], [19.072754, -98.204817], [19.073375, -98.204087], [19.073768, -98.203623], [19.074026, -98.203252], [19.074063, -98.202771], [19.074016, -98.202116], [19.073978, -98.200751], [19.073959, -98.199726], [19.073933, -98.198161], [19.073797, -98.197375], [19.073464, -98.196642], [19.073004, -98.195739], [19.072371, -98.19446], [19.071807, -98.193385], [19.071224, -98.192204], [19.070882, -98.191538], [19.070358, -98.191268], [19.069937, -98.191361], [19.069471, -98.19162], [19.068744, -98.192067], [19.068271, -98.19192], [19.067519, -98.191671], [19.066945, -98.191424], [19.066443, -98.191003], [19.066146, -98.190745], [19.065849, -98.190642], [19.065678, -98.19032], [19.065332, -98.189683], [19.065132, -98.189776], [19.06515, -98.189507], [19.065159, -98.188942], [19.065155, -98.188167], [19.065066, -98.186898], [19.065037, -98.185844], [19.064972, -98.184991], [19.064913, -98.184063], [19.064878, -98.182883], [19.064842, -98.182234], [19.064828, -98.181911], [19.064954, -98.181759], [19.065178, -98.181536], [19.065562, -98.181146], [19.065823, -98.18088], [19.065788, -98.180351], [19.065748, -98.179437], [19.065714, -98.178886], [19.066134, -98.178475], [19.066619, -98.17804], [19.067215, -98.177498], [19.068108, -98.176718], [19.068975, -98.175936], [19.069651, -98.17535], [19.070329, -98.174758], [19.071217, -98.173959], [19.071864, -98.173353], [19.07266, -98.172596], [19.073154, -98.172217], [19.073823, -98.171586], [19.074346, -98.171108], [19.074869, -98.170683], [19.075149, -98.170425], [19.075706, -98.17021], [19.076211, -98.170021], [19.076887, -98.169662], [19.077493, -98.169111], [19.078059, -98.168577], [19.079045, -98.167724], [19.07942, -98.167341], [19.079763, -98.167047], [19.079937, -98.166757], [19.080034, -98.166469], [19.079993, -98.166153], [19.079855, -98.165962], [19.079626, -98.165838], [19.079283, -98.16588], [19.078988, -98.165979], [19.078742, -98.166011], [19.07855, -98.166109], [19.078036, -98.166598], [19.077228, -98.167285], [19.076748, -98.167699], [19.076551, -98.167871], [19.076396, -98.167834], [19.075306, -98.166436]]}
+     ,"ALIM-Alimentadora-R8": {nombre:"Alimentadora R8",color:"#29B6F6",paradas:"Alimentadora R8",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[19.05074, -98.269563], [19.05107, -98.269455], [19.051715, -98.269272], [19.052505, -98.269011], [19.052443, -98.268885], [19.052275, -98.268504], [19.052142, -98.268249], [19.052069, -98.268156], [19.051853, -98.267905], [19.051789, -98.267809], [19.051737, -98.267649], [19.051872, -98.267487], [19.052109, -98.267217], [19.052525, -98.266769], [19.052605, -98.266523], [19.052618, -98.265756], [19.052524, -98.265572], [19.052384, -98.265359], [19.052144, -98.265218], [19.051453, -98.264865], [19.050608, -98.264461], [19.050355, -98.264399], [19.04995, -98.264384], [19.049654, -98.264409], [19.049474, -98.264477], [19.049296, -98.264639], [19.049191, -98.264821], [19.049095, -98.264926], [19.049005, -98.264922], [19.048968, -98.264817], [19.048922, -98.264679], [19.048794, -98.264215], [19.048575, -98.263474], [19.048425, -98.26276], [19.048211, -98.261693], [19.048081, -98.26061], [19.047954, -98.259656], [19.047809, -98.258859], [19.047575, -98.257806], [19.047275, -98.256542], [19.047082, -98.255656], [19.046931, -98.254895], [19.04677, -98.254203], [19.046522, -98.253229], [19.046413, -98.252663], [19.046313, -98.252117], [19.046191, -98.251716], [19.046014, -98.251215], [19.045699, -98.250484], [19.045605, -98.250101], [19.045538, -98.249596], [19.04571, -98.249558], [19.046236, -98.249462], [19.046948, -98.249314], [19.047673, -98.249128], [19.048496, -98.248957], [19.049117, -98.248826], [19.049663, -98.24876], [19.050106, -98.248794], [19.050803, -98.24891], [19.051859, -98.249144], [19.053117, -98.24943], [19.05382, -98.249579], [19.054281, -98.249672], [19.054255, -98.249122], [19.054194, -98.247978], [19.054161, -98.247173], [19.05399, -98.244667], [19.053893, -98.243146], [19.053762, -98.241168], [19.053248, -98.239913], [19.052622, -98.238663], [19.05212, -98.237637], [19.051547, -98.236478], [19.051124, -98.235673], [19.05095, -98.235321], [19.05159, -98.234968], [19.052637, -98.234381], [19.05385, -98.233659], [19.055231, -98.23289], [19.05576, -98.23258], [19.056169, -98.232349], [19.056766, -98.232018], [19.057602, -98.231503], [19.058062, -98.231168], [19.058407, -98.231082], [19.058963, -98.231088], [19.059523, -98.231099], [19.060142, -98.230984], [19.060592, -98.230752], [19.061208, -98.230439], [19.061688, -98.230174], [19.06193, -98.230011], [19.06192, -98.229828], [19.061813, -98.229657], [19.061641, -98.229354], [19.061315, -98.22874], [19.060823, -98.22784], [19.060543, -98.227324], [19.060218, -98.226565], [19.059957, -98.225966], [19.059836, -98.225688], [19.059825, -98.225611], [19.059904, -98.225558], [19.060105, -98.225425], [19.060568, -98.225143], [19.061203, -98.224827], [19.061512, -98.224649], [19.06184, -98.224456], [19.06203, -98.224351], [19.062117, -98.224272], [19.062113, -98.224164], [19.061961, -98.223999], [19.061712, -98.223666], [19.06134, -98.223188], [19.060898, -98.222603], [19.061136, -98.222516], [19.061486, -98.222399], [19.061732, -98.22233], [19.062449, -98.222098], [19.062765, -98.222039], [19.063017, -98.222026], [19.063166, -98.222071], [19.06339, -98.222178], [19.063702, -98.222285], [19.06385, -98.222253], [19.063935, -98.222171], [19.063855, -98.221967], [19.063743, -98.221795], [19.06375, -98.221688], [19.063834, -98.221641], [19.064253, -98.221533], [19.064717, -98.22139], [19.065187, -98.221252], [19.065938, -98.221001], [19.066668, -98.220761], [19.067627, -98.22046], [19.068481, -98.220185], [19.069214, -98.219966], [19.069523, -98.21987], [19.069589, -98.219739], [19.069491, -98.219581], [19.069305, -98.219368], [19.068882, -98.218885], [19.068214, -98.218118], [19.067382, -98.217142], [19.066213, -98.215791], [19.065359, -98.21484], [19.065083, -98.214537],
+     [19.065058, -98.214393], [19.065129, -98.214246], [19.065522, -98.213785], [19.066158, -98.212979], [19.066672, -98.212324], [19.066815, -98.212089], [19.067342, -98.211479], [19.067894, -98.210802], [19.0687, -98.209763], [19.069177, -98.209188], [19.070041, -98.20813], [19.070682, -98.207344], [19.071401, -98.206437], [19.072187, -98.205507], [19.072726, -98.204882], [19.073284, -98.204185], [19.073611, -98.203752], [19.073813, -98.203469], [19.073954, -98.203232], [19.074031, -98.202874], [19.073991, -98.202471], [19.07397, -98.20132], [19.073976, -98.20015], [19.073963, -98.198811], [19.073929, -98.197853], [19.073868, -98.197584], [19.073633, -98.196966], [19.073632, -98.19696], [19.073261, -98.196239], [19.072667, -98.195071], [19.072245, -98.194285], [19.072139, -98.1941], [19.072051, -98.194116], [19.071827, -98.194296], [19.071395, -98.194581], [19.070953, -98.194879], [19.069523, -98.195795], [19.069222, -98.195844], [19.068906, -98.195746], [19.067496, -98.195368], [19.066856, -98.194207], [19.066276, -98.193091], [19.06564, -98.191914], [19.065106, -98.190861], [19.065048, -98.19021], [19.065082, -98.189746], [19.065123, -98.189037], [19.065094, -98.187759], [19.065051, -98.186356], [19.064959, -98.184772], [19.064875, -98.183274], [19.064851, -98.181896], [19.064763, -98.181216], [19.064447, -98.179365], [19.064318, -98.178075], [19.064173, -98.176656], [19.064016, -98.175273], [19.06384, -98.173947], [19.063648, -98.172458], [19.063416, -98.171046], [19.063168, -98.169793], [19.06289, -98.168393], [19.06261, -98.166197], [19.062418, -98.164817], [19.062305, -98.164127], [19.06208, -98.163635], [19.0617, -98.163101], [19.061297, -98.162475], [19.06081, -98.161667], [19.06028, -98.160876], [19.059756, -98.160028], [19.059403, -98.159489], [19.058993, -98.159472], [19.058393, -98.159351], [19.057981, -98.159244], [19.05692, -98.159056], [19.055808, -98.158359], [19.054614, -98.157503], [19.053276, -98.156606], [19.052137, -98.155728], [19.050666, -98.154616], [19.049483, -98.153824], [19.049236, -98.153583], [19.049199, -98.153289], [19.049626, -98.152738], [19.050198, -98.151959], [19.050712, -98.15109], [19.051287, -98.150227], [19.051522, -98.149768], [19.051863, -98.1491], [19.052217, -98.148313], [19.052587, -98.14748], [19.052783, -98.146989], [19.053, -98.14654], [19.053313, -98.145886], [19.053532, -98.145437], [19.053687, -98.145081], [19.053898, -98.144645], [19.054069, -98.144348], [19.05429, -98.144025], [19.05451, -98.143772], [19.054697, -98.14354], [19.054855, -98.143297], [19.054965, -98.142872], [19.055086, -98.142325], [19.05524, -98.142018], [19.05552, -98.14143], [19.055851, -98.140612], [19.056127, -98.140014], [19.056273, -98.139864], [19.056494, -98.139779], [19.056802, -98.139705], [19.056974, -98.139667], [19.057068, -98.139638], [19.057044, -98.139556], [19.056987, -98.139389], [19.056857, -98.139048], [19.056835, -98.138867], [19.056765, -98.138329], [19.056673, -98.137678], [19.056588, -98.13726], [19.056486, -98.136822], [19.056344, -98.136332], [19.056448, -98.136305], [19.056798, -98.136186], [19.057275, -98.136065], [19.057631, -98.135935], [19.057771, -98.135851], [19.058185, -98.135452], [19.058512, -98.135152], [19.058731, -98.134968], [19.058788, -98.13503], [19.058852, -98.134978], [19.059234, -98.134705], [19.059404, -98.134533], [19.059614, -98.134312], [19.059691, -98.134212], [19.059933, -98.133795], [19.060422, -98.133946], [19.060841, -98.134071], [19.060941, -98.134251], [19.061287, -98.134156], [19.061508, -98.134085], [19.061683, -98.134016], [19.06177, -98.133925], [19.061942, -98.133712], [19.062564, -98.133775], [19.062653, -98.134708], [19.062724, -98.135359], [19.062818, -98.13606], [19.062886, -98.13637], [19.062937, -98.136427], [19.062992, -98.136409], 
+     [19.063001, -98.136346], [19.062976, -98.136192], [19.062918, -98.135686], [19.062837, -98.135076], [19.062754, -98.134212], [19.062629, -98.132832], [19.062509, -98.131673], [19.062411, -98.130708], [19.06235, -98.13005], [19.062247, -98.129054], [19.062154, -98.128043], [19.062403, -98.128021], [19.062699, -98.127991], [19.063054, -98.127987], [19.063374, -98.128016], [19.063751, -98.128051], [19.064084, -98.128104], [19.064189, -98.127621], [19.063721, -98.127543], [19.063905, -98.126942], [19.06409, -98.126561], [19.064315, -98.126234], [19.064474, -98.126008], [19.064667, -98.125824], [19.06487, -98.12567], [19.065136, -98.125536], [19.065339, -98.125424], [19.065932, -98.127014], [19.066172, -98.127686], [19.066293, -98.128046], [19.066262, -98.128148], [19.066182, -98.128403], [19.066419, -98.128547]]}
+     ,"ALIM-Alimentadora-R9": {nombre:"Alimentadora R9",color:"#FF8A65",paradas:"Alimentadora R9",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[19.058367, -98.216185], [19.058411, -98.216275], [19.058446, -98.216347], [19.058478, -98.216411], [19.058504, -98.216466], [19.058524, -98.216506], [19.058551, -98.216554], [19.058614, -98.216668], [19.058777, -98.216956], [19.058539, -98.217232], [19.058199, -98.217566], [19.057799, -98.217892], [19.057333, -98.2183], [19.056772, -98.218743], [19.056579, -98.218903], [19.056305, -98.21911], [19.056066, -98.219295], [19.055893, -98.219445], [19.05573, -98.219576], [19.055742, -98.21971], [19.055939, -98.219971], [19.056194, -98.220284], [19.056313, -98.220591], [19.056347, -98.220734], [19.05581, -98.221028], [19.055617, -98.221251], [19.055235, -98.221523], [19.054765, -98.22186], [19.054412, -98.221208], [19.053973, -98.220328], [19.05356, -98.219451], [19.053689, -98.219315], [19.053749, -98.219155], [19.05376, -98.21895], [19.053618, -98.218661], [19.052818, -98.217104], [19.052001, -98.2155], [19.049631, -98.210793], [19.04832, -98.208201], [19.047852, -98.207317], [19.047585, -98.206758], [19.048063, -98.206483], [19.048627, -98.206148], [19.049511, -98.205643], [19.05012, -98.205272], [19.050551, -98.205045], [19.051252, -98.204655], [19.052089, -98.204167], [19.052975, -98.203657], [19.052114, -98.202026], [19.051344, -98.200479], [19.052828, -98.199592], [19.054407, -98.198678], [19.056089, -98.197706], [19.058098, -98.196562], [19.059047, -98.195984], [19.05981, -98.195547], [19.061088, -98.194818], [19.061389, -98.194643], [19.061911, -98.194318], [19.062424, -98.194092], [19.062859, -98.193813], [19.063535, -98.193365], [19.064017, -98.193146], [19.064441, -98.192924], [19.065483, -98.192308], [19.065786, -98.192139], [19.06548, -98.191564], [19.065266, -98.191147], [19.065116, -98.190834], [19.065095, -98.190344], [19.06513, -98.189869], [19.065136, -98.189121], [19.065139, -98.188015], [19.065063, -98.186759], [19.064963, -98.184626], [19.064888, -98.183212], [19.064829, -98.181708], [19.064589, -98.180202], [19.064373, -98.178565], [19.064033, -98.175597], [19.063602, -98.172118], [19.063525, -98.171479], [19.063264, -98.170211], [19.063065, -98.169086], [19.062695, -98.166377], [19.062404, -98.164373], [19.062302, -98.163924], [19.061805, -98.163096], [19.061078, -98.162015], [19.059923, -98.160171], [19.059575, -98.159681], [19.059452, -98.159509], [19.059337, -98.159444], [19.059059, -98.159366], [19.057918, -98.159262], [19.057127, -98.159072], [19.056484, -98.158777], [19.055761, -98.158269], [19.054917, -98.157638], [19.053744, -98.156865], [19.052739, -98.156182], [19.051292, -98.155056], [19.05045, -98.154501], [19.050144, -98.154254], [19.049419, -98.153733], [19.04927, -98.153597], [19.049299, -98.153391], [19.049497, -98.153094], [19.049758, -98.152705], [19.049915, -98.15247], [19.050232, -98.152022], [19.050572, -98.151489], [19.050891, -98.150938], [19.051184, -98.150483], [19.051398, -98.150057], [19.051647, -98.149579], [19.051853, -98.149121], [19.052095, -98.148541], [19.052503, -98.147641], [19.05268, -98.147261], [19.052896, -98.146818], [19.053163, -98.146206], [19.053542, -98.145389], [19.053797, -98.144866], [19.054068, -98.144411], [19.05422, -98.144148], [19.054403, -98.143924], [19.054627, -98.143658], [19.054786, -98.143404], [19.054901, -98.143204], [19.054976, -98.142865], [19.055081, -98.14241], [19.055148, -98.142227], [19.055314, -98.141871], [19.055461, -98.141514], [19.055655, -98.14106], [19.055804, -98.140685], [19.055968, -98.140282], [19.056178, -98.139936], [19.056343, -98.139825], [19.056486, -98.139771], [19.05684, -98.13969], [19.05698, -98.139684], [19.057057, -98.139641], [19.05705, -98.139509], [19.057003, -98.139401], [19.056888, -98.139122], 
+     [19.056822, -98.138779], [19.056769, -98.13837], [19.056698, -98.137882], [19.05664, -98.137488], [19.056585, -98.13726], [19.056475, -98.136762], [19.056359, -98.136369], [19.056381, -98.136314], [19.056901, -98.136161], [19.057303, -98.136041], [19.057601, -98.13596], [19.057761, -98.135881], [19.05796, -98.135687], [19.058245, -98.135412], [19.058397, -98.135244], [19.058618, -98.135046], [19.05871, -98.134981], [19.058755, -98.135022], [19.058836, -98.135104], [19.059028, -98.135373], [19.059218, -98.135639], [19.059351, -98.13579], [19.05943, -98.135783], [19.059615, -98.135728], [19.059871, -98.135507], [19.060113, -98.135247], [19.060327, -98.135067], [19.060575, -98.134711], [19.060845, -98.134316], [19.061147, -98.134227], [19.061436, -98.134116], [19.061639, -98.134038], [19.061825, -98.133877], [19.06195, -98.133717], [19.062201, -98.13374], [19.062415, -98.133775], [19.062575, -98.133798], [19.062629, -98.134342], [19.062693, -98.135098], [19.062772, -98.135694], [19.062876, -98.136256], [19.062909, -98.136368], [19.062973, -98.136392], [19.063003, -98.136323], [19.062968, -98.136017], [19.062856, -98.135247], [19.062746, -98.133954], [19.062503, -98.131801], [19.062373, -98.130243], [19.062314, -98.129578], [19.062221, -98.128797], [19.062177, -98.128039], [19.062712, -98.128], [19.063065, -98.12799], [19.063606, -98.128038], [19.064093, -98.128092], [19.063974, -98.128605], [19.064396, -98.128731], [19.064874, -98.128844], [19.06519, -98.128991], [19.065386, -98.129083], [19.065643, -98.129189], [19.065876, -98.129286], [19.06598, -98.129313], [19.066038, -98.129171], [19.066187, -98.128669], [19.066262, -98.128441], [19.066406, -98.128492]]}
+     ,"ALIM-A-21": {nombre:"A-21",color:"#BA68C8",paradas:"A-21",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[18.964633, -98.267618], [18.964635, -98.267621], [18.964571, -98.267732], [18.964459, -98.267724], [18.964279, -98.267693], [18.964143, -98.26762], [18.963937, -98.267533], [18.963826, -98.267453], [18.963618, -98.267311], [18.963371, -98.267151], [18.963232, -98.267061], [18.963076, -98.266939], [18.962894, -98.266849], [18.962731, -98.266729], [18.962613, -98.266644], [18.962496, -98.266579], [18.962319, -98.266515], [18.962163, -98.266478], [18.962036, -98.266441], [18.961907, -98.266434], [18.961699, -98.26646], [18.961556, -98.266491], [18.961327, -98.2666], [18.961014, -98.266797], [18.960604, -98.267028], [18.960382, -98.267164], [18.960132, -98.267314], [18.959879, -98.267463], [18.959607, -98.267633], [18.959259, -98.267833], [18.958884, -98.268073], [18.958457, -98.268329], [18.95808, -98.268561], [18.957773, -98.268736], [18.957439, -98.268946], [18.957114, -98.269129], [18.95673, -98.269361], [18.95642, -98.269549], [18.956108, -98.269749], [18.955876, -98.269898], [18.955659, -98.270009], [18.955444, -98.270139], [18.955296, -98.270232], [18.955103, -98.270316], [18.954864, -98.270385], [18.954645, -98.270446], [18.95441, -98.270495], [18.954243, -98.270493], [18.954061, -98.270484], [18.953899, -98.270459], [18.953568, -98.270398], [18.953114, -98.27034], [18.952576, -98.270282], [18.951705, -98.270175], [18.950623, -98.269989], [18.950441, -98.269949], [18.950274, -98.26992], [18.950135, -98.269835], [18.9499, -98.269725], [18.949713, -98.269606], [18.949311, -98.269351], [18.949047, -98.269252], [18.948899, -98.269247], [18.948712, -98.269273], [18.948478, -98.26934], [18.948273, -98.269396], [18.948258, -98.2693], [18.948545, -98.269234], [18.948798, -98.269172], [18.949023, -98.269186], [18.94929, -98.269262], [18.949495, -98.269378], [18.949753, -98.269554], [18.950069, -98.269709], [18.950265, -98.269823], [18.950623, -98.269898], [18.950837, -98.269944], [18.951215, -98.270001], [18.951422, -98.270045], [18.951765, -98.270083], [18.952099, -98.270138], [18.952345, -98.270173], [18.952579, -98.270188], [18.952975, -98.270247], [18.953237, -98.270285], [18.953669, -98.270324], [18.953859, -98.270353], [18.954193, -98.270382], [18.954436, -98.270391], [18.954665, -98.270348], [18.954923, -98.270276], [18.955178, -98.270156], [18.95534, -98.270068], [18.956048, -98.26965], [18.956785, -98.269217], [18.95757, -98.268745], [18.958328, -98.268278], [18.959067, -98.267823], [18.959768, -98.267425], [18.960012, -98.267283], [18.960272, -98.267106], [18.960533, -98.266957], [18.96075, -98.266838], [18.961043, -98.266649], [18.961398, -98.266444], [18.961537, -98.266408], [18.961761, -98.266368], [18.961912, -98.266355], [18.962115, -98.266357], [18.962351, -98.266424], [18.962498, -98.266507], [18.962722, -98.266626], [18.962926, -98.266753], [18.963149, -98.266909], [18.963438, -98.267084], [18.963664, -98.267216], [18.963982, -98.267434], [18.964196, -98.267564], [18.964304, -98.267615], [18.964552, -98.267662]]}
+     ,"ALIM-A-22--Limones---Tulipanes": {nombre:"A-22  Limones - Tulipanes",color:"#4DB6AC",paradas:"A-22  Limones - Tulipanes",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[18.964565, -98.267697], [18.964567, -98.267702], [18.964489, -98.26775], [18.964337, -98.26774], [18.964068, -98.267609], [18.963826, -98.267453], [18.963577, -98.267314], [18.963391, -98.267189], [18.963226, -98.267086], [18.963076, -98.266977], [18.962912, -98.266881], [18.96279, -98.266808], [18.962667, -98.266709], [18.962531, -98.266631], [18.962379, -98.266564], [18.962189, -98.266504], [18.961993, -98.266458], [18.961868, -98.266455], [18.961629, -98.266492], [18.961476, -98.266557], [18.961377, -98.266605], [18.961214, -98.266683], [18.961068, -98.266805], [18.960838, -98.266947], [18.960555, -98.267105], [18.960479, -98.266949], [18.960323, -98.266663], [18.960205, -98.266425], [18.960037, -98.266131], [18.959856, -98.26583], [18.959727, -98.265589], [18.959562, -98.265287], [18.95938, -98.26492], [18.959215, -98.26462], [18.959048, -98.264292], [18.958896, -98.264091], [18.958703, -98.263774], [18.958571, -98.263583], [18.958563, -98.263471], [18.958564, -98.263285], [18.958587, -98.263156], [18.958617, -98.263015], [18.958678, -98.262797], [18.958758, -98.262461], [18.958813, -98.26215], [18.958878, -98.261766], [18.958877, -98.261581], [18.958891, -98.261458], [18.958848, -98.261088], [18.95882, -98.260786], [18.958801, -98.260623], [18.958756, -98.260504], [18.958606, -98.260269], [18.958446, -98.259974], [18.958241, -98.259653], [18.957989, -98.259191], [18.957781, -98.258821], [18.957679, -98.258697], [18.957534, -98.258448], [18.957363, -98.258053], [18.957221, -98.258116], [18.957213, -98.258101], [18.957374, -98.258028], [18.957499, -98.25829], [18.957686, -98.258625], [18.957906, -98.258985], [18.958283, -98.259648], [18.958403, -98.259861], [18.958548, -98.260113], [18.958684, -98.260355], [18.958857, -98.260615], [18.958859, -98.260816], [18.958879, -98.26111], [18.958901, -98.261351], [18.958923, -98.26162], [18.958898, -98.261865], [18.958857, -98.262052], [18.958766, -98.262592], [18.958607, -98.263249], [18.958579, -98.263392], [18.958598, -98.26353], [18.958682, -98.263674], [18.959113, -98.264403], [18.959565, -98.265186], [18.959904, -98.265834], [18.960025, -98.266038], [18.960165, -98.266264], [18.960302, -98.26655], [18.960412, -98.26673], [18.96053, -98.266985], [18.960781, -98.26685], [18.961091, -98.26666], [18.961416, -98.266484], [18.961574, -98.266444], [18.961793, -98.266396], [18.961942, -98.266377], [18.962158, -98.266419], [18.962306, -98.266465], [18.962561, -98.266572], [18.962875, -98.266788], [18.963104, -98.266927], [18.963389, -98.267107], [18.963661, -98.267278], [18.963977, -98.267498], [18.964167, -98.267595], [18.964333, -98.267685], [18.964578, -98.267677]]}
+        ,"ALIM-A-23--Margaritas---Orquideas": {nombre:"A-23  Margaritas - Orquideas",color:"#F06292",paradas:"A-23  Margaritas - Orquideas",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[18.969111, -98.265927], [18.969359, -98.266136], [18.968429, -98.266592], [18.96824, -98.266669], [18.967861, -98.266799], [18.967566, -98.2669], [18.967457, -98.26695], [18.967201, -98.267038], [18.967088, -98.267074], [18.966824, -98.267168], [18.966611, -98.267262], [18.966396, -98.267333], [18.966191, -98.26741], [18.965904, -98.267507], [18.965696, -98.267586], [18.965536, -98.267659], [18.965363, -98.267715], [18.965194, -98.267751], [18.964876, -98.267781], [18.964608, -98.267758], [18.964576, -98.267647], [18.964478, -98.267481], [18.964234, -98.267039], [18.964051, -98.266695], [18.96383, -98.266304], [18.963703, -98.266044], [18.963535, -98.26576], [18.963413, -98.265503], [18.96323, -98.265198], [18.963111, -98.264941], [18.962929, -98.264588], [18.962767, -98.264279], [18.962638, -98.264034], [18.962717, -98.263983], [18.963001, -98.263821], [18.963401, -98.263575], [18.963754, -98.263377], [18.964031, -98.263196], [18.964373, -98.26298], [18.964717, -98.262776], [18.964975, -98.26262], [18.965198, -98.262499], [18.965469, -98.262334], [18.965633, -98.262229], [18.965835, -98.262086], [18.966089, -98.261961], [18.966437, -98.261739], [18.967119, -98.261334], [18.967423, -98.261151], [18.967804, -98.260922], [18.968026, -98.260793], [18.968295, -98.260638], [18.968553, -98.260465], [18.968795, -98.260327], [18.969021, -98.260248], [18.968922, -98.260041], [18.968802, -98.259846], [18.968699, -98.25972], [18.968528, -98.259661], [18.968449, -98.259644], [18.968293, -98.259328], [18.968145, -98.259057], [18.967926, -98.258643], [18.967727, -98.258351], [18.96747, -98.257865], [18.967341, -98.257619], [18.967201, -98.257403], [18.967014, -98.257076], [18.966828, -98.25672], [18.966662, -98.256411], [18.96656, -98.256234], [18.966221, -98.256438], [18.965741, -98.256729], [18.965445, -98.256912], [18.965041, -98.257152], [18.96466, -98.257382], [18.964539, -98.257454], [18.964389, -98.257556], [18.964302, -98.25761], [18.964073, -98.257735], [18.963851, -98.257871], [18.963671, -98.257982], [18.96351, -98.25808], [18.963388, -98.258155], [18.963292, -98.258189], [18.963232, -98.258186], [18.963168, -98.258232], [18.963107, -98.258291], [18.963045, -98.25818], [18.963077, -98.258138], [18.963169, -98.258087], [18.96324, -98.258081], [18.963313, -98.258147], [18.963379, -98.258115], [18.963586, -98.257983], [18.96391, -98.257779], [18.964236, -98.257604], [18.964578, -98.257367], [18.965028, -98.257121], [18.965237, -98.25699], [18.965485, -98.256856], [18.96557, -98.2568], [18.965671, -98.256733], [18.965821, -98.256637], [18.965994, -98.256545], [18.966173, -98.256414], [18.966368, -98.256297], [18.966567, -98.256195], [18.966805, -98.256614], [18.966979, -98.25698], [18.967166, -98.257317], [18.967348, -98.257597], [18.967444, -98.257767], [18.967593, -98.25808], [18.967802, -98.25847], [18.967879, -98.258622], [18.968033, -98.258883], [18.968145, -98.259114], [18.968307, -98.259403], [18.968442, -98.259683], [18.968504, -98.25971], [18.968645, -98.259745], [18.968725, -98.259821], [18.968863, -98.259991], [18.968969, -98.260181], [18.968859, -98.260253], [18.96863, -98.26037], [18.968388, -98.260526], [18.968141, -98.260662], [18.967922, -98.260812], [18.967705, -98.260933], [18.967487, -98.261065], [18.96725, -98.261199], [18.967035, -98.261324], [18.966815, -98.261468], [18.966571, -98.26162], [18.966367, -98.261751], [18.966079, -98.261938], [18.965863, -98.262027], [18.965577, -98.262213], [18.965369, -98.262362], [18.965085, -98.262546], [18.964895, -98.262643], [18.964737, -98.262732], [18.963798, -98.263316], [18.963148, -98.263703], [18.962848, -98.263883], [18.962589, -98.264016], [18.962819, -98.26444], 
+        [18.962989, -98.26479], [18.963124, -98.265071], [18.963263, -98.265302], [18.963405, -98.265556], [18.963544, -98.265819], [18.963753, -98.266203], [18.96403, -98.266692], [18.964247, -98.267096], [18.964469, -98.267503], [18.964552, -98.267662], [18.964922, -98.267684], [18.965247, -98.267635], [18.965567, -98.26754], [18.966343, -98.267291], [18.966978, -98.267006], [18.967312, -98.266888], [18.967718, -98.266732], [18.968136, -98.266586], [18.968658, -98.266395], [18.969264, -98.266129], [18.969627, -98.265909], [18.970421, -98.265008], [18.970272, -98.264854]]}
+        ,"ALIM-A-24-TABA": {nombre:"A-24 TABA",color:"#AED581",paradas:"A-24 TABA",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[18.973991, -98.261626], [18.973993, -98.261629], [18.975659, -98.263991], [18.976606, -98.265283], [18.977034, -98.265885], [18.977194, -98.265958], [18.977385, -98.26621], [18.977742, -98.266666], [18.977381, -98.266938], [18.977945, -98.267776], [18.979511, -98.270163], [18.979621, -98.270333], [18.979572, -98.270408], [18.979206, -98.27074], [18.978022, -98.271573], [18.976883, -98.272311], [18.975738, -98.273053], [18.975451, -98.273205], [18.975527, -98.27331], [18.975648, -98.273227], [18.975934, -98.27302], [18.976788, -98.272496], [18.977522, -98.272], [18.979318, -98.270664], [18.979618, -98.270474], [18.979701, -98.270352], [18.977425, -98.266905], [18.977785, -98.266634], [18.977238, -98.265917], [18.97707, -98.265811], [18.975889, -98.264205], [18.974385, -98.265485], [18.972077, -98.26268], [18.973301, -98.260917], [18.973447, -98.260877], [18.973908, -98.261512]]}
+        ,"ALIM-A-25-Pino---S-Articulo": {nombre:"A-25 Pino - S. Articulo",color:"#4DD0E1",paradas:"A-25 Pino - S. Articulo",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[18.978021, -98.255393], [18.978105, -98.25554], [18.977629, -98.2559], [18.977253, -98.256153], [18.976238, -98.254317], [18.975218, -98.252474], [18.974203, -98.250625], [18.973257, -98.248817], [18.972128, -98.246814], [18.97093, -98.244645], [18.969536, -98.242104], [18.968221, -98.239709], [18.966696, -98.236958], [18.965266, -98.234329], [18.963906, -98.231846], [18.963218, -98.2306], [18.963062, -98.230366], [18.961953, -98.2305], [18.961259, -98.230596], [18.960806, -98.230679], [18.96022, -98.230721], [18.959844, -98.230773], [18.959512, -98.230818], [18.95901, -98.230985], [18.958442, -98.231161], [18.957855, -98.231334], [18.956727, -98.229379], [18.955527, -98.23043], [18.955726, -98.232377], [18.956624, -98.231892], [18.957855, -98.231334], [18.959914, -98.230795], [18.963141, -98.230395], [18.964775, -98.233315], [18.968011, -98.239264], [18.972131, -98.24675], [18.975256, -98.252437], [18.976762, -98.255157], [18.977541, -98.25457], [18.977987, -98.255347]]}
+            ,"ALIM-A-27-Independencia---Sec-5-de-Mayo": {nombre:"A-27 Independencia - Sec. 5 de Mayo",color:"#FF7043",paradas:"A-27 Independencia - Sec. 5 de Mayo",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[18.980131, -98.253534], [18.978973, -98.251378], [18.976011, -98.245779], [18.973296, -98.240698], [18.973063, -98.240301], [18.973447, -98.240247], [18.973833, -98.240233], [18.974445, -98.240186], [18.974939, -98.240158], [18.975323, -98.24011], [18.975593, -98.240104], [18.975935, -98.240024], [18.976319, -98.239968], [18.976592, -98.239877], [18.97702, -98.239708], [18.976806, -98.239333], [18.976482, -98.238717], [18.976153, -98.238101], [18.975966, -98.237722], [18.97574, -98.237299], [18.975474, -98.236793], [18.975718, -98.236704], [18.976055, -98.236582], [18.976532, -98.236435], [18.976788, -98.236357], [18.97714, -98.236259], [18.9773, -98.236218], [18.977791, -98.236013], [18.978039, -98.235881], [18.978329, -98.235666], [18.978596, -98.235529], [18.978899, -98.235302], [18.979111, -98.235174], [18.979325, -98.235049], [18.979549, -98.234742], [18.979711, -98.234395], [18.979767, -98.234262], [18.979979, -98.234044], [18.980276, -98.233828], [18.98048, -98.233688], [18.980893, -98.233509], [18.98141, -98.233304], [18.981611, -98.233158], [18.980776, -98.231698], [18.980366, -98.230974], [18.979932, -98.230212], [18.979795, -98.229947], [18.979532, -98.229504], [18.979322, -98.229169], [18.979237, -98.228955], [18.979102, -98.228836], [18.978841, -98.228542], [18.978685, -98.228345], [18.978537, -98.228256], [18.978319, -98.228116], [18.977942, -98.227866], [18.977617, -98.227702], [18.977394, -98.227576], [18.977194, -98.227469], [18.976958, -98.227342], [18.976545, -98.227082], [18.976274, -98.226913], [18.976024, -98.226785], [18.975864, -98.22668], [18.97577, -98.226654], [18.975621, -98.226657], [18.975552, -98.226663], [18.975627, -98.22654], [18.97556, -98.226512], [18.975437, -98.226729], [18.975545, -98.226722], [18.975712, -98.226684], [18.975872, -98.226736], [18.976049, -98.226862], [18.976665, -98.227214], [18.97707, -98.22746], [18.977663, -98.227826], [18.977976, -98.227974], [18.978331, -98.228193], [18.978609, -98.228368], [18.978892, -98.228658], [18.979197, -98.229008], [18.979518, -98.22956], [18.979903, -98.230252], [18.98051, -98.2313], [18.981368, -98.232784], [18.981551, -98.233145], [18.981203, -98.233301], [18.980789, -98.233461], [18.980368, -98.23368], [18.979915, -98.234007], [18.97959, -98.234365], [18.97942, -98.234778], [18.979201, -98.235011], [18.978524, -98.235426], [18.977292, -98.236055], [18.976337, -98.23637], [18.975783, -98.236519], [18.975377, -98.236687], [18.975565, -98.237053], [18.976556, -98.238926], [18.977585, -98.240849], [18.978409, -98.242373], [18.97943, -98.244324], [18.980048, -98.245568], [18.98051, -98.246395], [18.981561, -98.248426], [18.982081, -98.249399], [18.983238, -98.251581], [18.9818, -98.252729], [18.981097, -98.253263], [18.98064, -98.253593], [18.980302, -98.25382], [18.980149, -98.253563]]}
+             ,"ALIM-A-28-CCentro---155-Poniente": {nombre:"A-28 C.Centro - 155 Poniente",color:"#66BB6A",paradas:"A-28 C.Centro - 155 Poniente",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[18.990127, -98.247457], [18.991144, -98.248711], [18.991521, -98.249232], [18.992047, -98.249871], [18.992251, -98.250133], [18.992269, -98.25035], [18.992241, -98.250674], [18.992154, -98.25082], [18.992036, -98.250937], [18.991979, -98.251377], [18.99125, -98.252034], [18.990684, -98.252486], [18.990821, -98.252875], [18.990904, -98.253349], [18.990925, -98.253986], [18.990985, -98.25448], [18.991089, -98.255118], [18.991424, -98.255776], [18.991274, -98.256301], [18.991055, -98.256736], [18.989914, -98.257402], [18.988762, -98.257996], [18.986553, -98.254579], [18.986353, -98.254698], [18.985727, -98.253751], [18.985701, -98.25376], [18.985299, -98.25436], [18.984533, -98.255441], [18.984033, -98.25615], [18.983435, -98.256895], [18.982699, -98.257974], [18.982302, -98.258583], [18.980712, -98.261079], [18.979903, -98.262243], [18.978735, -98.263927], [18.977286, -98.265538], [18.977163, -98.265758], [18.975938, -98.264122], [18.973383, -98.266352], [18.972732, -98.266927], [18.972658, -98.26695], [18.968752, -98.270277], [18.968578, -98.270375], [18.968528, -98.270497], [18.968597, -98.270507], [18.97069, -98.268689], [18.972774, -98.266897], [18.975889, -98.264205], [18.977118, -98.26574], [18.978708, -98.263897], [18.979923, -98.262275], [18.985718, -98.253787], [18.986341, -98.25475], [18.986503, -98.254661], [18.988724, -98.258081], [18.991053, -98.256804], [18.991303, -98.256321], [18.991465, -98.255787], [18.991368, -98.255583], [18.991102, -98.254972], [18.991004, -98.254323], [18.990965, -98.253812], [18.990917, -98.253113], [18.990774, -98.252556], [18.991694, -98.251785], [18.992055, -98.251404], [18.992144, -98.251055], [18.992293, -98.250613], [18.992266, -98.250115], [18.991532, -98.249195], [18.990622, -98.249956], [18.990278, -98.24947], [18.988805, -98.247563], [18.989708, -98.246919], [18.990053, -98.247365]]}
+             ,"ALIM-A-29-Yucatán---SecTéc-88": {nombre:"A-29 Yucatán - Sec.Téc. 88",color:"#FFA726",paradas:"A-29 Yucatán - Sec.Téc. 88",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[18.997314, -98.240622], [18.995461, -98.242373], [18.995277, -98.242501], [18.994955, -98.242695], [18.993454, -98.24381], [18.992413, -98.24459], [18.992153, -98.244764], [18.99187, -98.244266], [18.991287, -98.243224], [18.990604, -98.24204], [18.989961, -98.240867], [18.989624, -98.240215], [18.989433, -98.23989], [18.988948, -98.239059], [18.98876, -98.238715], [18.988345, -98.237942], [18.988026, -98.237419], [18.987718, -98.236847], [18.987489, -98.236559], [18.98719, -98.23588], [18.986984, -98.23556], [18.986516, -98.23481], [18.986284, -98.234352], [18.985947, -98.233816], [18.985784, -98.233512], [18.985378, -98.232642], [18.985245, -98.23234], [18.985088, -98.231919], [18.984859, -98.23128], [18.984603, -98.230534], [18.984426, -98.230147], [18.987307, -98.228328], [18.98781, -98.229793], [18.98667, -98.230465], [18.985512, -98.231057], [18.98517, -98.231193], [18.984713, -98.231441], [18.98329, -98.232293], [18.981958, -98.233047], [18.981705, -98.233118], [18.980678, -98.233471], [18.980211, -98.233729], [18.979864, -98.233991], [18.979667, -98.234381], [18.979478, -98.234793], [18.979134, -98.234978], [18.978327, -98.235471], [18.977683, -98.235916], [18.976961, -98.23609], [18.976194, -98.236324], [18.974751, -98.236953], [18.972879, -98.2378], [18.970655, -98.238685], [18.968653, -98.239436], [18.967679, -98.240088], [18.966639, -98.240722], [18.966383, -98.240875], [18.965676, -98.240851], [18.965036, -98.240769], [18.964362, -98.240691], [18.963594, -98.240615], [18.96248, -98.240393], [18.961658, -98.240147], [18.960978, -98.239983], [18.960365, -98.239829], [18.959648, -98.239642], [18.958987, -98.239478], [18.958172, -98.239256], [18.957771, -98.239161], [18.957395, -98.239094], [18.957026, -98.238982], [18.956757, -98.238907], [18.956257, -98.238806], [18.955766, -98.238673], [18.955205, -98.238534], [18.954707, -98.238409], [18.954086, -98.238253], [18.953562, -98.23812], [18.953109, -98.238004], [18.952781, -98.237946], [18.952307, -98.237839], [18.951645, -98.237655], [18.95117, -98.237545], [18.950955, -98.237486], [18.95056, -98.237382], [18.950184, -98.237296], [18.949976, -98.237241], [18.949563, -98.237134], [18.949311, -98.237073], [18.948992, -98.236996], [18.948753, -98.236939], [18.948528, -98.236894], [18.948251, -98.236827], [18.948055, -98.236796], [18.947738, -98.236704], [18.947478, -98.236647], [18.947462, -98.236613], [18.947415, -98.236566], [18.947414, -98.236662], [18.948441, -98.236952], [18.950986, -98.237592], [18.95349, -98.238187], [18.955384, -98.238648], [18.958041, -98.239261], [18.960709, -98.239938], [18.962555, -98.240431], [18.964319, -98.240661], [18.966413, -98.240911], [18.966618, -98.240825], [18.968105, -98.239892], [18.968842, -98.239515], [18.9701, -98.238999], [18.971059, -98.238581], [18.972181, -98.238198], [18.973507, -98.237547], [18.974299, -98.237219], [18.975318, -98.236797], [18.976155, -98.236551], [18.977268, -98.236173], [18.977881, -98.23588], [18.978598, -98.235441], [18.979235, -98.235101], [18.979549, -98.234742], [18.979915, -98.234007], [18.980466, -98.233621], [18.981103, -98.233337], [18.98167, -98.233202], [18.982068, -98.233088], [18.983284, -98.232426], [18.983874, -98.232133], [18.984205, -98.232007], [18.984476, -98.232068], [18.984693, -98.232287], [18.985002, -98.23311], [18.985561, -98.233926], [18.986234, -98.234928], [18.987568, -98.237307], [18.988231, -98.238555], [18.989011, -98.240004], [18.989466, -98.240787], [18.991557, -98.244443], [18.991884, -98.245111], [18.99221, -98.244901], [18.995085, -98.24279], [18.997407, -98.241038], [18.997831, -98.240714], [18.997935, -98.240522], [18.997772, -98.240119], [18.997417, -98.240458]]}
+            ,"ALIM-A-30-Yucatán---C-Esparza": {nombre:"A-30 Yucatán - C. Esparza",color:"#EC407A",paradas:"A-30 Yucatán - C. Esparza",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[18.998024, -98.239963], [18.997772, -98.240119], [18.993829, -98.232668], [18.99114, -98.234359], [18.991051, -98.234274], [18.98911, -98.230786], [18.988807, -98.230185], [18.98837, -98.22906], [18.988193, -98.228595], [18.988142, -98.228428], [18.987961, -98.227876], [18.987304, -98.228279], [18.986203, -98.228993], [18.986166, -98.229004], [18.984858, -98.227204], [18.984828, -98.227014], [18.984801, -98.226973], [18.984023, -98.225783], [18.983031, -98.226184], [18.982625, -98.226347], [18.984029, -98.228741], [18.984717, -98.229912], [18.98572, -98.229344], [18.987933, -98.227911], [18.988464, -98.229352], [18.988779, -98.230202], [18.989099, -98.230696], [18.990034, -98.232371], [18.990555, -98.23334], [18.991146, -98.234379], [18.992435, -98.233557], [18.993753, -98.232743], [18.997052, -98.238883], [18.998163, -98.238244], [18.998735, -98.239305], [18.998132, -98.239862]]}
+                ,"ALIM-A-31-Yucatán---SecTéc-88": {nombre:"A-31 Yucatán - Sec.Téc. 88",color:"#7E57C2",paradas:"A-31 Yucatán - Sec.Téc. 88",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[18.998065, -98.239925], [18.997803, -98.240168], [18.993829, -98.232668], [18.991863, -98.229281], [18.991451, -98.228521], [18.991291, -98.22789], [18.982696, -98.232651], [18.981565, -98.233107], [18.98055, -98.233467], [18.979915, -98.234007], [18.979625, -98.23449], [18.979352, -98.234988], [18.979201, -98.235011], [18.978558, -98.235466], [18.979596, -98.23726], [18.98022, -98.238286], [18.979981, -98.238497], [18.978261, -98.239089], [18.977559, -98.239456], [18.975935, -98.240024], [18.974416, -98.240118], [18.972616, -98.240287], [18.969816, -98.241023], [18.969016, -98.241191], [18.967705, -98.241043], [18.964685, -98.240749], [18.962698, -98.240437], [18.961361, -98.240108], [18.957608, -98.239148], [18.952738, -98.237905], [18.950818, -98.23745], [18.949468, -98.237133], [18.947478, -98.236647], [18.947426, -98.236609], [18.947388, -98.236682], [18.94771, -98.236768], [18.954592, -98.238401], [18.964362, -98.240691], [18.965609, -98.240872], [18.966199, -98.240932], [18.967015, -98.241006], [18.968117, -98.241178], [18.968603, -98.241205], [18.968942, -98.241289], [18.969584, -98.241158], [18.970014, -98.241015], [18.970635, -98.240761], [18.971167, -98.240646], [18.972285, -98.240288], [18.972977, -98.240217], [18.973311, -98.240184], [18.973965, -98.240093], [18.97501, -98.240025], [18.975598, -98.239997], [18.976321, -98.239934], [18.97683, -98.239762], [18.97772, -98.239395], [18.978782, -98.238917], [18.980064, -98.238505], [18.980507, -98.238177], [18.983452, -98.236346], [18.98167, -98.233202], [18.982392, -98.232801], [18.984848, -98.231487], [18.985512, -98.231057], [18.991255, -98.227997], [18.991377, -98.228526], [18.99165, -98.228965], [18.991996, -98.229648], [18.993175, -98.2317], [18.99372, -98.232789], [18.993806, -98.232769], [18.994707, -98.234641], [18.996387, -98.2377], [18.996667, -98.238223], [18.997032, -98.238905], [18.998124, -98.238235], [18.998424, -98.238777], [18.998619, -98.239144], [18.99869, -98.239293], [18.998132, -98.239862]]}
+                ,"ALIM-32B-Angelópolis---Tor": {nombre:"32B Angelópolis - Tor",color:"#26A69A",paradas:"32B Angelópolis - Tor",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[19.003679, -98.234898], [19.003818, -98.235389], [19.003965, -98.235746], [19.004067, -98.23593], [19.00422, -98.236243], [19.004351, -98.236673], [19.004497, -98.23726], [19.004622, -98.237769], [19.004961, -98.239227], [19.005199, -98.240106], [19.005586, -98.241296], [19.00582, -98.242266], [19.006013, -98.242839], [19.006306, -98.24328], [19.006663, -98.243648], [19.007344, -98.244026], [19.007901, -98.244263], [19.009907, -98.24519], [19.012126, -98.246231], [19.014374, -98.247234], [19.016453, -98.248191], [19.018198, -98.248975], [19.01893, -98.249245], [19.019459, -98.249551], [19.019642, -98.249812], [19.019662, -98.24998], [19.019412, -98.250142], [19.019088, -98.250305], [19.018793, -98.250234], [19.018625, -98.250137], [19.018548, -98.249931], [19.018677, -98.249648], [19.01901, -98.248839], [19.019424, -98.248304], [19.019937, -98.24751], [19.020266, -98.247124], [19.020682, -98.246683], [19.020956, -98.246391], [19.021289, -98.246024], [19.021622, -98.245551], [19.021902, -98.24498], [19.022133, -98.244322], [19.022357, -98.243436], [19.022751, -98.242826], [19.023068, -98.242163], [19.02356, -98.241499], [19.023828, -98.240907], [19.024304, -98.240278], [19.024744, -98.239678], [19.025296, -98.239476], [19.025479, -98.239135], [19.025757, -98.238252], [19.026154, -98.237113], [19.026594, -98.236646], [19.026927, -98.236338], [19.027101, -98.236187], [19.027478, -98.235631], [19.027746, -98.234882], [19.028041, -98.234446], [19.028321, -98.234249], [19.028612, -98.234255], [19.029159, -98.234258], [19.029517, -98.234319], [19.029857, -98.23449], [19.030147, -98.235056], [19.03064, -98.236063], [19.031073, -98.236864], [19.031184, -98.23737], [19.031167, -98.237773], [19.031118, -98.238448], [19.031278, -98.239072], [19.031942, -98.239989], [19.032419, -98.240607], [19.033186, -98.241401], [19.034917, -98.243688], [19.03504, -98.243743], [19.035112, -98.243685], [19.035111, -98.243618], [19.034692, -98.242886], [19.033528, -98.241406], [19.032972, -98.24064], [19.032797, -98.240093], [19.032658, -98.239271], [19.032474, -98.238725], [19.032095, -98.237887], [19.032089, -98.237588], [19.032147, -98.237333], [19.032315, -98.236958], [19.032675, -98.236445], [19.033022, -98.235989], [19.033406, -98.235486], [19.033845, -98.234915], [19.034205, -98.234318], [19.03442, -98.233645], [19.034728, -98.232589], [19.034851, -98.232181], [19.03482, -98.231957], [19.034753, -98.23176], [19.034655, -98.231625], [19.034403, -98.231542], [19.034109, -98.231653], [19.033975, -98.231821], [19.033973, -98.232049], [19.033967, -98.232749], [19.033969, -98.233619], [19.033938, -98.234096], [19.033737, -98.234609], [19.033464, -98.234967], [19.032981, -98.235561], [19.032663, -98.235966], [19.032398, -98.236189], [19.03218, -98.236346], [19.031803, -98.236382], [19.031465, -98.236265], [19.031202, -98.236143], [19.030629, -98.235198], [19.030281, -98.234691], [19.029786, -98.234071], [19.029235, -98.233104], [19.028704, -98.232154], [19.028368, -98.231553], [19.028109, -98.230873], [19.027983, -98.230514], [19.027773, -98.229783], [19.027696, -98.229429], [19.027609, -98.229183], [19.027541, -98.229099], [19.027373, -98.229113], [19.027248, -98.22918], [19.027231, -98.229287], [19.027342, -98.229469], [19.027477, -98.229597], [19.027572, -98.229987], [19.027635, -98.230505], [19.027606, -98.231384], [19.027592, -98.231859], [19.027655, -98.23212], [19.027638, -98.232893], [19.027611, -98.233492], [19.027483, -98.234107], [19.027348, -98.234485], [19.026827, -98.235125], [19.026484, -98.235583], [19.026226, -98.236391], [19.02588, -98.237111], [19.025524, -98.237651], [19.025263, -98.238157], [19.024814, -98.238799], [19.024233, -98.239324], 
+                [19.023969, -98.239689], [19.023805, -98.240243], [19.02363, -98.240727], [19.023194, -98.2415], [19.022042, -98.243588], [19.021054, -98.244399], [19.020242, -98.245379], [19.020016, -98.246702], [19.019559, -98.247277], [19.018042, -98.247879], [19.017039, -98.24808], [19.011942, -98.24589], [19.010688, -98.245311], [19.009984, -98.244977], [19.008794, -98.244468], [19.007433, -98.243846], [19.006888, -98.243538], [19.006376, -98.242988], [19.006156, -98.242758], [19.005147, -98.239054], [19.004911, -98.238248], [19.00477, -98.237644], [19.004514, -98.236604], [19.004342, -98.23606], [19.004178, -98.235823], [19.003915, -98.235214], [19.003821, -98.234752]]}
+                    ,"ALIM-A-32-Torres---Héroes": {nombre:"A-32 Torres - Héroes",color:"#EF5350",paradas:"A-32 Torres - Héroes",duracion:40,frecuencia:10,inicioOp:6,finOp:22,coords:[[19.005564, -98.240673], [19.00543, -98.240197], [19.005113, -98.239012], [19.0049, -98.238306], [19.004906, -98.238227], [19.004695, -98.237421], [19.004494, -98.236636], [19.004396, -98.236351], [19.004139, -98.235733], [19.003674, -98.234546], [19.003131, -98.233453], [19.002646, -98.232371], [19.002188, -98.231328], [19.001734, -98.23033], [19.001217, -98.229359], [19.00073, -98.228447], [19.000296, -98.227504], [18.999716, -98.226542], [18.999153, -98.225661], [18.998412, -98.22424], [18.998297, -98.224094], [18.997853, -98.224336], [18.996511, -98.22507], [18.995508, -98.225629], [18.995025, -98.225888], [18.994897, -98.225686], [18.994219, -98.22457], [18.99378, -98.22379], [18.994279, -98.223178], [18.994827, -98.222181], [18.993672, -98.221527], [18.99278, -98.221029], [18.992294, -98.220739], [18.991829, -98.220422], [18.991246, -98.220068], [18.990544, -98.219651], [18.98986, -98.219161], [18.98905, -98.218555], [18.988632, -98.218284], [18.988275, -98.217974], [18.987739, -98.217326], [18.987293, -98.216817], [18.986898, -98.216366], [18.986726, -98.216157], [18.987029, -98.215937], [18.987202, -98.215801], [18.987397, -98.215649], [18.987641, -98.215499], [18.987872, -98.215363], [18.988202, -98.215263], [18.988535, -98.215133], [18.988821, -98.215056], [18.989082, -98.214967], [18.989397, -98.214851], [18.98982, -98.214684], [18.990172, -98.214525], [18.990125, -98.214479], [18.989948, -98.214566], [18.989676, -98.214668], [18.989205, -98.214836], [18.988897, -98.214958], [18.988686, -98.215006], [18.988504, -98.215098], [18.988131, -98.215233], [18.987863, -98.215319], [18.987429, -98.215593], [18.987163, -98.215802], [18.98664, -98.216149], [18.985941, -98.216666], [18.985563, -98.21691], [18.985184, -98.217161], [18.984917, -98.217215], [18.984658, -98.217279], [18.984372, -98.217314], [18.984045, -98.217236], [18.983735, -98.217306], [18.983528, -98.217376], [18.982534, -98.217662], [18.981648, -98.217951], [18.980935, -98.218185], [18.980277, -98.218393], [18.979854, -98.218532], [18.979264, -98.218486], [18.978498, -98.218433], [18.977642, -98.218468], [18.976744, -98.218586], [18.975875, -98.218749], [18.974762, -98.218822], [18.973995, -98.218702], [18.973221, -98.218487], [18.971847, -98.218501], [18.970871, -98.218491], [18.969832, -98.218362], [18.969047, -98.218349], [18.965964, -98.218298], [18.965631, -98.218298], [18.965664, -98.218395], [18.968835, -98.218432], [18.969579, -98.218516], [18.969848, -98.218548], [18.970218, -98.21856], [18.973278, -98.218667], [18.973852, -98.218777], [18.974682, -98.218906], [18.97545, -98.218859], [18.976624, -98.218719], [18.977378, -98.218601], [18.977818, -98.218591], [18.978643, -98.2186], [18.979341, -98.218657], [18.979923, -98.218609], [18.980112, -98.218497], [18.980554, -98.218305], [18.981299, -98.218098], [18.981874, -98.217876], [18.982466, -98.217722], [18.983199, -98.21751], [18.983645, -98.217386], [18.984055, -98.217339], [18.98441, -98.21734], [18.984836, -98.217278], [18.985171, -98.217196], [18.985568, -98.217001], [18.985839, -98.216799], [18.986664, -98.216157], [18.98831, -98.218101], [18.988821, -98.218436], [18.989823, -98.219169], [18.992244, -98.220759], [18.994793, -98.222186], [18.994272, -98.2231], [18.993726, -98.223806], [18.99501, -98.225963], [18.998314, -98.224168], [18.998586, -98.22471], [18.999114, -98.225658], [18.999588, -98.226413], [19.000376, -98.227947], [19.000973, -98.22921], [19.001681, -98.230576], [19.003536, -98.234527], [19.003636, -98.234746], [19.003751, -98.23501], [19.003933, -98.235588], [19.004085, -98.235886], [19.004297, -98.23635], [19.00455, -98.237477], [19.004904, -98.239015], [19.005273, -98.240174]
+                    , [19.005397, -98.240715]]}
+};
+window.onload = function() {
+    map = L.map('map', { zoomControl: false }).setView([19.0433, -98.2019], 13);
+    tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '© CARTO'
+}).addTo(map);
+    // Contador de usuarios activos
+db.ref('usuarios_activos').on('value', (snap) => {
+    const el = document.getElementById('contador-usuarios');
+    if (el) el.textContent = `${total + 1} pasajero${total !== 0 ? 's' : ''} activo${total !== 0 ? 's' : ''}`;
+        // Mostrar tutorial primera vez
+if (!localStorage.getItem('urbanmov_tutorial')) {
+    document.getElementById('tutorial').style.display = 'flex';
+}
+});
+    // Activar ruta desde URL si viene de ia.html
+const urlParams = new URLSearchParams(window.location.search);
+const rutaDesdeIA = urlParams.get('ruta');
+if (rutaDesdeIA && RUTAS[rutaDesdeIA]) {
+    setTimeout(() => activarRuta(rutaDesdeIA), 500);
+}
+    // Ubicación del usuario en tiempo real
+if (navigator.geolocation) {
+    navigator.geolocation.watchPosition(function(pos) {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        // Guardar en Firebase
+        db.ref('usuarios_activos/' + miUbicacionId).set({
+            lat: lat, lng: lng,
+            t: Date.now()
+        });
+
+        // Limpiar al cerrar
+        window.addEventListener('beforeunload', () => {
+            db.ref('usuarios_activos/' + miUbicacionId).remove();
+        });
+
+        // Mostrar TU ubicación en el mapa con punto pulsante
+        if (miUbicacionMarker) {
+            miUbicacionMarker.setLatLng([lat, lng]);
+        } else {
+          miLatActual = lat;
+            miLngActual = lng;
+            const iconoYo = L.divIcon({
+                className: '',
+                html: `<div style="position:relative;width:20px;height:20px;">
+                    <div style="position:absolute;width:20px;height:20px;border-radius:50%;background:rgba(0,87,255,0.2);animation:pulsar 1.5s infinite;"></div>
+                    <div style="position:absolute;top:4px;left:4px;width:12px;height:12px;border-radius:50%;background:#0057ff;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>
+                </div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+            miUbicacionMarker = L.marker([lat, lng], { icon: iconoYo, zIndexOffset: 1000 }).addTo(map);
+            map.setView([lat, lng], 15);
+        }
+        miLatActual = lat;
+            miLngActual = lng;
+    }, null, { enableHighAccuracy: true, maximumAge: 10000 });
+}
+
+// Ver usuarios activos en el mapa
+const usuarioMarkers = {};
+db.ref('usuarios_activos').on('value', (snapshot) => {
+    // Limpiar markers viejos
+    Object.keys(usuarioMarkers).forEach(id => {
+        if (!snapshot.child(id).exists() || id === miUbicacionId) {
+            if (usuarioMarkers[id]) map.removeLayer(usuarioMarkers[id]);
+            delete usuarioMarkers[id];
+        }
+    });
+
+    snapshot.forEach((child) => {
+        const u = child.val();
+        const id = child.key;
+        if (id === miUbicacionId) return; // No mostrarte a ti mismo
+
+        // Ignorar ubicaciones de más de 10 minutos
+        if (Date.now() - u.t > 600000) {
+            db.ref('usuarios_activos/' + id).remove();
+            return;
+        }
+
+        const icono = L.divIcon({
+            className: '',
+            html: `<div style="background:#0057ff;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>`,
+            iconSize: [14, 14]
+        });
+
+        if (usuarioMarkers[id]) {
+            usuarioMarkers[id].setLatLng([u.lat, u.lng]);
+        } else {
+            usuarioMarkers[id] = L.marker([u.lat, u.lng], { icon: icono }).addTo(map);
+            usuarioMarkers[id].bindPopup('👤 Usuario activo');
+        }
+    });
+});
+
+    // Escuchar el buscador
+    document.getElementById('search-input').addEventListener('input', mostrarSugerencias);
+    document.getElementById('search-input').addEventListener('focus', mostrarHistorial);
+document.getElementById('search-input').addEventListener('blur', () => {
+    setTimeout(() => document.getElementById('historial-rutas').style.display = 'none', 200);
+});
+// Llenar select de rutas
+const select = document.getElementById('select-ruta-reporte');
+Object.keys(RUTAS).forEach(key => {
+    select.innerHTML += `<option value="${key}">${RUTAS[key].nombre}</option>`;
+});
+
+// Click en mapa para pin de reporte
+map.on('click', function(e) {
+    if (!modoReporte) return;
+    if (pinReporte) map.removeLayer(pinReporte);
+
+    const icono = L.divIcon({
+        className: '',
+        html: `<div style="background:#e53935;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.5);">📍</div>`,
+        iconSize: [36, 36]
+    });
+    pinReporte = L.marker([e.latlng.lat, e.latlng.lng], { icon: icono }).addTo(map);
+
+    // Actualizar status y quitar minimizado
+    document.getElementById('pin-status').innerHTML = `✅ Punto marcado correctamente`;
+    document.getElementById('pin-status').style.background = "#e8f5e9";
+    document.getElementById('pin-status').style.color = "#2e7d32";
+
+    // El panel regresa a tamaño completo automáticamente
+    document.getElementById('panel-reporte').classList.remove('minimizado');
+});
+// Escuchar toque en el mapa para el pin de reporte
+map.on('click', function(e) {
+    if (!modoReporte) return;
+    
+    // Limpiar pin anterior
+    if (pinReporte) map.removeLayer(pinReporte);
+    
+    // Poner pin rojo temporal
+    const icono = L.divIcon({
+        className: '',
+        html: `<div style="background:#e53935;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.5);">📍</div>`,
+        iconSize: [36, 36]
+    });
+    pinReporte = L.marker([e.latlng.lat, e.latlng.lng], { icon: icono }).addTo(map);
+    
+    // Actualizar status
+    document.getElementById('pin-status').innerHTML = 
+        `✅ Punto marcado: ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
+    document.getElementById('pin-status').style.background = "#e8f5e9";
+    document.getElementById('pin-status').style.color = "#2e7d32";
+});
+};
+
+// Escuchar reportes de todos los usuarios en tiempo real
+const reporteMarkers = {};
+
+db.ref('reportes').on('value', (snapshot) => {
+    // Limpiar marcadores viejos
+    Object.values(reporteMarkers).forEach(m => map.removeLayer(m));
+
+    snapshot.forEach((child) => {
+        const r = child.val();
+        const id = child.key;
+
+        const icono = L.divIcon({
+            className: '',
+            html: `<img src="alert3D.png" style="width:40px; height:60px; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4));">`,
+            iconSize: [40, 40],
+            iconAnchor: [20, 20]
+        });
+
+        const marker = L.marker([r.lat, r.lng], { icon: icono }).addTo(map);
+        marker.bindPopup(`
+            <b style="color:#e53935;">${r.tipo}</b><br>
+            📍 ${r.ruta}<br>
+            🕐 ${r.hora} — ${r.fecha}
+        `);
+        reporteMarkers[id] = marker;
+    });
+});
+function mostrarSugerencias() {
+    const q = document.getElementById('search-input').value.toLowerCase();
+    const div = document.getElementById('sugerencias');
+    document.getElementById('historial-rutas').style.display = 'none';
+    div.innerHTML = "";
+    if (q.length < 1) { div.style.display = "none"; return; }
+
+    // Búsqueda por nombre de ruta
+    const resultados = Object.keys(RUTAS).filter(k =>
+        k.toLowerCase().includes(q) || RUTAS[k].nombre.toLowerCase().includes(q)
+    );
+
+    // Búsqueda por destino/parada
+    const porDestino = Object.keys(RUTAS).filter(k =>
+        !resultados.includes(k) && RUTAS[k].paradas.toLowerCase().includes(q)
+    );
+
+    const porPOI = POI.filter(p => p.nombre.toLowerCase().includes(q));
+    if (resultados.length === 0 && porDestino.length === 0 && porPOI.length === 0) {
+        div.style.display = "none"; return;
+    }
+
+    resultados.forEach(key => {
+        div.innerHTML += `<div class="sug-item" onclick="activarRuta('${key}')">
+            🚌 ${RUTAS[key].nombre}<br><span>${RUTAS[key].paradas}</span>
+        </div>`;
+    });
+
+    if (porDestino.length > 0) {
+        div.innerHTML += `<div style="font-size:11px;color:#aaa;padding:6px 15px;">Rutas que pasan por aquí</div>`;
+        porDestino.forEach(key => {
+            div.innerHTML += `<div class="sug-item" onclick="activarRuta('${key}')">
+                📍 ${RUTAS[key].nombre}<br><span>${RUTAS[key].paradas}</span>
+            </div>`;
+        });
+    }
+
+    if (porPOI.length > 0) {
+        div.innerHTML += `<div style="font-size:11px;color:#aaa;padding:6px 15px;">Lugares de interés</div>`;
+        porPOI.forEach(poi => {
+            div.innerHTML += `<div class="sug-item" onclick="map.setView([${poi.lat}, ${poi.lng}], 16);document.getElementById('sugerencias').style.display='none';">
+                <img src="${poi.img}" style="width:20px;height:20px;object-fit:contain;vertical-align:middle;margin-right:6px;">${poi.nombre}<br>
+                <span style="font-size:11px;color:#888;">${poi.desc}</span>
+            </div>`;
+        });
+    }
+
+    div.style.display = "block";
+}
+addCoins(2);
+function buscarRuta() {
+    const q = document.getElementById('search-input').value;
+    const key = Object.keys(RUTAS).find(k =>
+        k.toLowerCase() === q.toLowerCase() || RUTAS[k].nombre.toLowerCase().includes(q.toLowerCase())
+    );
+    if (key) activarRuta(key);
+    else alert("Ruta no encontrada. Prueba: 68B, Azteca, CAPU-Dorada");
+}
+function activarRuta(key) {guardarHistorial(key);
+    const ruta = RUTAS[key];
+    document.getElementById('sugerencias').style.display = "none";
+    document.getElementById('search-input').value = ruta.nombre;
+    document.getElementById('btn-corregir-ruta').style.display = 'block';
+    document.getElementById('btn-corregir-ruta').setAttribute('data-ruta', key);
+
+    // Limpiar ruta anterior
+    if (lineaActiva) map.removeLayer(lineaActiva);
+    if (busMarker) map.removeLayer(busMarker);
+    if (busInterval) clearInterval(busInterval);
+
+    // Dibujar línea
+    lineaActiva = L.polyline(ruta.coords, {
+        color: ruta.color, weight: 7, opacity: 0.9
+    }).addTo(map);
+    map.fitBounds(lineaActiva.getBounds(), { padding: [60, 60] });
+
+    // Marcadores de inicio y fin
+    L.circleMarker(ruta.coords[0], { radius: 8, color: 'white', fillColor: ruta.color, fillOpacity: 1, weight: 3 })
+        .addTo(map).bindPopup("🟢 Inicio: " + ruta.nombre);
+    L.circleMarker(ruta.coords[ruta.coords.length-1], { radius: 8, color: 'white', fillColor: '#333', fillOpacity: 1, weight: 3 })
+        .addTo(map).bindPopup("🔴 Final de ruta");
+
+// Limpiar camiones anteriores
+if (window.busMarkers) window.busMarkers.forEach(m => map.removeLayer(m));
+if (busInterval) clearInterval(busInterval);
+window.busMarkers = [];
+
+const horaActual = new Date().getHours() + new Date().getMinutes() / 60;
+const esPico = (horaActual >= 7.5 && horaActual <= 9) || (horaActual >= 18 && horaActual <= 20);
+const progresos = calcularCamionesSumulados(ruta);
+
+if (progresos.length === 0) {
+    document.getElementById('info-paradas').textContent = ruta.paradas + " — ⚠️ Fuera de horario";
+    return;
+}
+
+// Crear un marcador por cada camión en ruta ahorita
+progresos.forEach((progreso, i) => {
+    const coord = obtenerCoordEnProgreso(ruta.coords, progreso);
+    const icono = L.divIcon({
+        className: '',
+        html: `<img src="bus3D.png" style="width:52px; height:40px; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));">`,
+        iconSize: [52, 28],
+        iconAnchor: [26, 14]
+    });
+    const marker = L.marker(coord, { icon: icono }).addTo(map);
+    marker.bindPopup(`
+        <b>${ruta.nombre}</b><br>
+        Unidad ${i + 1} de ${progresos.length}<br>
+        ${esPico ? '⚠️ Hora pico — posible retraso' : '✅ Circulando normal'}<br>
+        Recorrido: ${Math.round(progreso * 100)}% completado
+    `);
+    window.busMarkers.push(marker);
+});
+
+// Mover todos los camiones cada 10 segundos
+let tick = 0;
+busInterval = setInterval(() => {
+    tick++;
+    window.busMarkers.forEach((marker, i) => {
+        const nuevoProg = Math.min(progresos[i] + (tick * 0.003), 1);
+        const coord = obtenerCoordEnProgreso(ruta.coords, nuevoProg);
+        marker.setLatLng(coord);
+    });
+}, 10000);
+
+// Info card con cantidad de camiones
+document.getElementById('info-paradas').textContent = 
+    `${ruta.paradas} | 🚌 ${progresos.length} unidades activas${esPico ? ' | ⚠️ Hora pico' : ''}`;
+    document.getElementById('info-nombre').textContent = "🚌 " + ruta.nombre;
+document.getElementById('info-ruta').style.display = "block";
+document.getElementById('btns-compartir').style.display = 'flex';
+function calcularCamionesSumulados(ruta) {
+    const ahora = new Date();
+    const horaActual = ahora.getHours() + ahora.getMinutes() / 60;
+
+    // Verificar si está en horario de operación
+    if (horaActual < ruta.inicioOp || horaActual > ruta.finOp) return [];
+
+    // Detectar hora pico — agrega retraso
+    const esPico = (horaActual >= 7.5 && horaActual <= 9) || 
+                   (horaActual >= 18 && horaActual <= 20);
+    const duracionReal = ruta.duracion + (esPico ? 25 : 0);
+
+    // Calcular cuántos camiones hay en ruta ahorita
+    const minutosDesdeInicio = (horaActual - ruta.inicioOp) * 60;
+    const camionesEnRuta = [];
+
+    // Cada camión que salió y todavía no terminó su recorrido
+    for (let salida = 0; salida <= minutosDesdeInicio; salida += ruta.frecuencia) {
+        const tiempoEnRuta = minutosDesdeInicio - salida;
+        if (tiempoEnRuta <= duracionReal) {
+            const progreso = tiempoEnRuta / duracionReal; // 0 a 1
+            camionesEnRuta.push(progreso);
+        }
+    }
+
+    return camionesEnRuta;
+}
+
+function obtenerCoordEnProgreso(coords, progreso) {
+    const totalPuntos = coords.length - 1;
+    const indexFloat = progreso * totalPuntos;
+    const indexBase = Math.floor(indexFloat);
+    const fraccion = indexFloat - indexBase;
+
+    if (indexBase >= totalPuntos) return coords[totalPuntos];
+
+    // Interpolación entre dos puntos — más suave
+    const p1 = coords[indexBase];
+    const p2 = coords[indexBase + 1];
+    return [
+        p1[0] + (p2[0] - p1[0]) * fraccion,
+        p1[1] + (p2[1] - p1[1]) * fraccion
+    ];
+}
+    // Mostrar info card
+    
+    // Encuesta después de 30 segundos
+setTimeout(() => {
+    const hoy = new Date().toLocaleDateString('es-MX');
+    const yaRespondio = localStorage.getItem('encuesta_' + key + '_' + hoy);
+    if (!yaRespondio) {
+        document.getElementById('encuesta-ruta-nombre').textContent = ruta.nombre;
+        document.getElementById('encuesta-flotante').style.display = 'block';
+    }
+}, 30000);
+}
+function minimizarParaMarcar() {
+    document.getElementById('panel-reporte').classList.add('minimizado');
+}
+function abrirReporte() {
+    // Cerrar solo sidebar y modal, NO el panel
+    document.getElementById('sidebar').classList.remove('active');
+    document.getElementById('modal-reg').classList.remove('active');
+    document.getElementById('overlay-bg').classList.remove('active');
+    
+    modoReporte = true;
+    pinReporte = null;
+    document.getElementById('pin-status').innerHTML = "👆 Toca el mapa para marcar";
+    document.getElementById('pin-status').style.background = "#fff3e0";
+    document.getElementById('pin-status').style.color = "#e65100";
+    document.getElementById('panel-reporte').classList.add('active');
+}
+function cerrarReporte() {
+    modoReporte = false;
+    if (pinReporte) { map.removeLayer(pinReporte); pinReporte = null; }
+    document.getElementById('panel-reporte').classList.remove('active');
+    document.getElementById('overlay-bg').classList.remove('active');
+    document.querySelectorAll('.tipo-btn').forEach(b => b.classList.remove('selected'));
+    tipoReporteSeleccionado = "";
+    document.getElementById('select-ruta-reporte').value = "";
+}
+function seleccionarTipo(btn) {
+    document.querySelectorAll('.tipo-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    tipoReporteSeleccionado = btn.textContent;
+}
+function enviarReporte() {
+    const rutaKey = document.getElementById('select-ruta-reporte').value;
+    if (!rutaKey) { alert("Selecciona la ruta afectada"); return; }
+    if (!pinReporte) { alert("Toca el mapa para marcar el punto exacto"); return; } addCoins(10);
+    if (!tipoReporteSeleccionado) { alert("Selecciona el tipo de incidente"); return; }
+
+    const pos = pinReporte.getLatLng();
+    const rutaNombre = RUTAS[rutaKey].nombre;
+
+    db.ref('reportes').push({
+        tipo: tipoReporteSeleccionado,
+        ruta: rutaNombre,
+        lat: pos.lat,
+        lng: pos.lng,
+        hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+        fecha: new Date().toLocaleDateString('es-MX')
+    }).then(() => {
+        alert("✅ Reporte enviado en " + rutaNombre + "\nTodos los usuarios lo ven ahora.");
+        cerrarReporte();
+    }).catch(() => {
+        alert("Error al enviar. Revisa tu conexión.");
+    });
+    const hoy = new Date().toLocaleDateString('es-MX');
+db.ref('chat/' + hoy).push({
+    autor: '⚠️ UrbanMov',
+    texto: `Nuevo reporte: ${tipoReporteSeleccionado} en ${rutaNombre}`,
+    hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+});
+}
+function abrirMenu() {
+    document.getElementById('sidebar').classList.add('active');
+    document.getElementById('overlay-bg').classList.add('active');
+}
+function abrirRegistro() {
+    document.getElementById('modal-reg').classList.add('active');
+    document.getElementById('overlay-bg').classList.add('active');
+}
+function cerrarTodo() {
+    document.getElementById('sidebar').classList.remove('active');
+    document.getElementById('modal-reg').classList.remove('active');
+    document.getElementById('panel-reporte').classList.remove('active');
+    document.getElementById('overlay-bg').classList.remove('active');
+    document.getElementById('panel-perfil').style.bottom = '-100%';
+    document.getElementById('panel-chat').classList.remove('active');
+    document.getElementById('panel-actualizaciones').style.bottom = '-100%';
+    document.getElementById('panel-privacidad').style.bottom = '-100%';
+    document.getElementById('btn-corregir-ruta').style.display = 'none';
+}
+function verTodasLasRutas() {
+    cerrarTodo();
+    // Limpiar todo primero
+    if (lineaActiva) map.removeLayer(lineaActiva);
+    if (window.busMarkers) window.busMarkers.forEach(m => map.removeLayer(m));
+    
+    const bounds = [];
+    
+    Object.keys(RUTAS).forEach(key => {
+        const ruta = RUTAS[key];
+        
+        // Dibujar línea sin borrar las anteriores
+        const linea = L.polyline(ruta.coords, {
+            color: ruta.color, weight: 5, opacity: 0.8
+        }).addTo(map);
+        
+        // Marcador de inicio
+        L.circleMarker(ruta.coords[0], {
+            radius: 6, color: 'white', fillColor: ruta.color, fillOpacity: 1, weight: 2
+        }).addTo(map).bindPopup(`<b>${ruta.nombre}</b>`);
+        
+        // Agregar coords al bounds
+        ruta.coords.forEach(c => bounds.push(c));
+    });
+    
+    // Ajustar vista para ver todas
+    if (bounds.length > 0) {
+        map.fitBounds(L.latLngBounds(bounds), { padding: [30, 30] });
+    }
+}
+// CHAT COMUNITARIO
+function abrirChat() {
+    cerrarTodo();
+    document.getElementById('panel-chat').classList.add('active');
+    cargarMensajesChat();
+}
+const nombreGuardado = localStorage.getItem('urbanmov_nombre');
+if (nombreGuardado) {
+    document.getElementById('chat-apodo').value = nombreGuardado;
+    document.getElementById('chat-apodo').readOnly = true;
+}
+function cerrarChat() {
+    document.getElementById('panel-chat').classList.remove('active');
+}
+function cargarMensajesChat() {
+    const hoy = new Date().toLocaleDateString('es-MX');
+    const contenedor = document.getElementById('chat-mensajes');
+    
+    db.ref('chat/' + hoy).on('value', (snapshot) => {
+        contenedor.innerHTML = '';
+        if (!snapshot.exists()) {
+            contenedor.innerHTML = '<p style="text-align:center;color:#aaa;margin-top:20px;font-size:14px;">Sin mensajes aún. ¡Sé el primero!</p>';
+            return;
+        }
+        snapshot.forEach((child) => {
+            const m = child.val();
+            const msgId = child.key;
+            const esBot = m.autor === '🤖 UrbanMov' || m.autor === '⚠️ UrbanMov';
+            const fotoSrc = esBot ? 'urbanmov2.png' : `avatar${m.avatar || 1}.jpeg`;
+
+            let reaccionesHTML = '';
+            const reacciones = m.reacciones || {};
+            const emojis = ['👍', '❤️', '😂', '😮', '😢'];
+            let totalReacciones = 0;
+            emojis.forEach(e => {
+                const count = reacciones[e] ? Object.keys(reacciones[e]).length : 0;
+                if (count > 0) {
+                    totalReacciones += count;
+                    reaccionesHTML += `<span style="background:#f0f2f5;border-radius:10px;padding:2px 6px;font-size:11px;margin-right:3px;">${e} ${count}</span>`;
+                }
+            });
+
+            contenedor.innerHTML += `
+                <div class="chat-msg" style="display:flex;gap:8px;align-items:flex-start;">
+                    <img src="${fotoSrc}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;margin-top:2px;">
+                    <div style="flex:1;">
+                        <div class="chat-autor">${esBot ? 'UrbanMov' : m.autor}</div>
+                        <div class="chat-texto">${m.texto}</div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+                            <div>${reaccionesHTML}</div>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <span onclick="toggleReacciones('${msgId}')" style="cursor:pointer;font-size:13px;color:#888;">+</span>
+                                <span class="chat-hora" style="margin:0;">${m.hora}</span>
+                            </div>
+                        </div>
+                        <div id="reacciones-bar-${msgId}" style="display:none;gap:4px;margin-top:4px;background:white;border-radius:14px;padding:4px 8px;box-shadow:0 2px 8px rgba(0,0,0,0.15);width:fit-content;">
+                            ${emojis.map(e => `<span onclick="reaccionarMensaje('${msgId}', '${e}')" style="cursor:pointer;font-size:16px;padding:2px;">${e}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>`;
+        });
+        contenedor.scrollTop = contenedor.scrollHeight;
+    });
+}
+
+function toggleReacciones(msgId) {
+    const bar = document.getElementById('reacciones-bar-' + msgId);
+    const isVisible = bar.style.display === 'flex';
+    document.querySelectorAll('[id^="reacciones-bar-"]').forEach(b => b.style.display = 'none');
+    bar.style.display = isVisible ? 'none' : 'flex';
+}
+
+function reaccionarMensaje(msgId, emoji) {
+    const hoy = new Date().toLocaleDateString('es-MX');
+    const userId = miUbicacionId;
+    db.ref(`chat/${hoy}/${msgId}/reacciones/${emoji}/${userId}`).set(true);
+    document.getElementById('reacciones-bar-' + msgId).style.display = 'none';
+}
+function enviarChatMensaje() {
+    let apodo = localStorage.getItem('urbanmov_nombre');
+    if (!apodo) {
+        apodo = document.getElementById('chat-apodo').value.trim();
+        if (!apodo) { alert("Escribe tu nombre primero"); return; }
+        localStorage.setItem('urbanmov_nombre', apodo);
+    }
+    document.getElementById('chat-apodo').value = apodo;
+    document.getElementById('chat-apodo').readOnly = true;
+
+    const texto = document.getElementById('chat-texto').value.trim();
+    if (!texto) return;
+    const ahora = Date.now();
+    const ultimoMensaje = parseInt(localStorage.getItem('ultimo_mensaje') || '0');
+    if (ahora - ultimoMensaje < 5000) {
+        alert('Espera unos segundos antes de enviar otro mensaje'); return;
+    }
+    localStorage.setItem('ultimo_mensaje', ahora);
+
+    const hoy = new Date().toLocaleDateString('es-MX');
+const avNum = localStorage.getItem('urbanmov_avatar') || 1;
+    db.ref('chat/' + hoy).push({
+        autor: apodo,
+        avatar: avNum,
+        texto: texto,
+        hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+});addCoins(3);const hoy2 = new Date().toISOString().slice(0,10);
+db.ref('ranking/' + hoy2 + '/' + miUbicacionId).set({ nombre: apodo, coins: getCoins() });
+    document.getElementById('chat-texto').value = '';
+}
+function abrirActualizaciones() {
+    cerrarTodo();
+    document.getElementById('panel-actualizaciones').style.bottom = '0';
+}
+function cerrarActualizaciones() {
+    document.getElementById('panel-actualizaciones').style.bottom = '-100%';
+}
+function abrirPrivacidad() {
+    cerrarTodo();
+    document.getElementById('panel-privacidad').style.bottom = '0';
+}
+function cerrarPrivacidad() {
+    document.getElementById('panel-privacidad').style.bottom = '-100%';
+}
+// PERFIL Y UMCOINS
+function abrirPerfil() {
+    cerrarTodo();
+    actualizarPerfil();
+    document.getElementById('panel-perfil').style.bottom = '0';cargarPasajeroDelDia();
+}
+function cerrarPerfil() {
+    document.getElementById('panel-perfil').style.bottom = '-100%';
+}
+function getCoins() {
+    return parseInt(localStorage.getItem('umcoins') || '0');
+}
+function addCoins(cantidad) {
+    const total = getCoins() + cantidad;
+    localStorage.setItem('umcoins', total);
+    actualizarPerfil();
+}
+function getInsignia(coins) {
+    if (coins >= 500) return { icon: '👑', nombre: 'Pasajero VIP', siguiente: 500, nivel: 5 };
+    if (coins >= 300) return { icon: '🏆', nombre: 'Guía de Puebla', siguiente: 500, nivel: 4 };
+    if (coins >= 150) return { icon: '⭐', nombre: 'Colaborador', siguiente: 300, nivel: 3 };
+    if (coins >= 50)  return { icon: '🚌', nombre: 'Pasajero Regular', siguiente: 150, nivel: 2 };
+    return { icon: '🌱', nombre: 'Pasajero Nuevo', siguiente: 50, nivel: 1 };
+}
+function actualizarPerfil() {
+    const coins = getCoins();
+    const nombre = localStorage.getItem('urbanmov_nombre') || 'Pasajero';
+    const ins = getInsignia(coins);
+
+    document.getElementById('perfil-nombre').textContent = nombre;
+    document.getElementById('perfil-coins').textContent = coins;
+    document.getElementById('perfil-insignia-icon').textContent = ins.icon;
+    document.getElementById('perfil-insignia-nombre').textContent = ins.nombre;
+
+    // Barra de progreso
+    const niveles = [0, 50, 150, 300, 500];
+    const base = niveles[ins.nivel - 1];
+    const meta = ins.siguiente;
+    const progreso = ins.nivel === 5 ? 100 : Math.min(((coins - base) / (meta - base)) * 100, 100);
+    document.getElementById('perfil-barra').style.width = progreso + '%';
+    document.getElementById('perfil-progreso-texto').textContent = coins + '/' + meta;
+
+    // Insignias
+    for (let i = 1; i <= 5; i++) {
+        const el = document.getElementById('ins-' + i);
+        el.classList.remove('desbloqueada', 'activa');
+        if (i < ins.nivel) el.classList.add('desbloqueada');
+        if (i === ins.nivel) el.classList.add('activa');
+    }
+}
+
+// Ganar coins automáticamente
+window.addEventListener('load', () => {
+    const hoy = new Date().toISOString().slice(0,10);
+    const ultimaVisita = localStorage.getItem('ultima_visita');
+    if (ultimaVisita !== hoy) {
+        localStorage.setItem('ultima_visita', hoy);
+        addCoins(5);
+    }
+    cargarAvatar();
+setTimeout(() => {
+        POI.forEach(poi => {
+            const icono = L.divIcon({
+                className: '',
+                html: `<div style="display:flex;flex-direction:column;align-items:center;">
+                    <div style="background:#e8eaf0;border-radius:50% 50% 50% 0;width:38px;height:38px;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+                        <img src="${poi.img}" style="width:24px;height:24px;object-fit:contain;transform:rotate(45deg);">
+                    </div>
+                </div>`,
+                iconSize: [38, 38],
+                iconAnchor: [19, 38],
+                popupAnchor: [0, -38]
+            });
+            L.marker([poi.lat, poi.lng], { icon: icono, zIndexOffset: 500 })
+                .addTo(map)
+                .on('click', () => mostrarInfoPOI(poi));
+        });
+    }, 2000);
+});
+function responderEncuesta(respuesta) {
+    const rutaNombre = document.getElementById('encuesta-ruta-nombre').textContent;
+    const hoy = new Date().toISOString().slice(0,10);
+    const key = Object.keys(RUTAS).find(k => RUTAS[k].nombre === rutaNombre);
+    
+    db.ref('encuestas/' + hoy).push({
+        ruta: rutaNombre,
+        respuesta: respuesta,
+        hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+    });
+
+    if (key) localStorage.setItem('encuesta_' + key + '_' + hoy, '1');
+    addCoins(2);
+    cerrarEncuesta();
+    alert('¡Gracias! +2 UMCoins por tu opinión 🪙');
+}
+
+function cerrarEncuesta() {
+    document.getElementById('encuesta-flotante').style.display = 'none';
+}
+function cargarPasajeroDelDia() {
+    const hoy = new Date().toISOString().slice(0,10);
+    db.ref('ranking/' + hoy).orderByChild('coins').limitToLast(1).once('value', (snap) => {
+        snap.forEach(child => {
+            const top = child.val();
+            const div = document.getElementById('pasajero-del-dia');
+            if (div) div.innerHTML = `<b>${top.nombre}</b> — ${top.coins} UMCoins`;
+        });
+    });
+}
+function tutSiguiente(num) {
+    document.getElementById('tut-slide-1').style.display = 'none';
+    document.getElementById('tut-slide-2').style.display = 'none';
+    document.getElementById('tut-slide-3').style.display = 'none';
+    document.getElementById('tut-slide-' + num).style.display = 'block';
+}
+function cerrarTutorial() {
+    document.getElementById('tutorial').style.display = 'none';
+    localStorage.setItem('urbanmov_tutorial', '1');
+}
+// BOT DE MENSAJES AUTOMÁTICOS
+const mensajesBot = [
+    { horaInicio: 6,  horaFin: 7,  texto: "🌅 Buenos días Puebla. Que tengas buen viaje hoy. Recuerda revisar tu ruta antes de salir." },
+    { horaInicio: 7,  horaFin: 9,  texto: "⚠️ Hora pico activa en Puebla. Guarda tu celular, cuida tus pertenencias y reporta cualquier incidente." },
+    { horaInicio: 9,  horaFin: 12, texto: "🚌 Mañana tranquila. Las rutas circulan con normalidad. ¿Todo bien en tu camión? Repórtalo aquí." },
+    { horaInicio: 12, horaFin: 15, texto: "☀️ Hora de comida. Si hay tráfico o desvíos en tu ruta, avisa a la comunidad." },
+    { horaInicio: 15, horaFin: 18, texto: "🕒 Tarde activa. Prepárate para el regreso a casa. Revisa tu ruta antes de salir." },
+    { horaInicio: 18, horaFin: 20, texto: "🚨 Hora pico vespertina. Mucho cuidado con tu celular y objetos de valor en el camión." },
+    { horaInicio: 20, horaFin: 21, texto: "🌆 Noche llegando. Verifica que tu ruta siga operando. Última hora con más unidades." },
+    { horaInicio: 21, horaFin: 24, texto: "🌙 Últimas unidades del día en Puebla. Confirma el horario de tu ruta. ¡Buen regreso a casa!" }
+];
+
+function publicarMensajeBot() {
+    const ahora = new Date();
+    const hora = ahora.getHours();
+    const hoy = ahora.toLocaleDateString('es-MX');
+
+    const mensaje = mensajesBot.find(m => hora >= m.horaInicio && hora < m.horaFin);
+    if (!mensaje) return;
+
+    // Clave única por bloque de horas — evita duplicados
+    const claveBloque = `bot_${hoy}_${mensaje.horaInicio}`;
+
+    db.ref('chat_bot/' + claveBloque).once('value', (snap) => {
+        if (snap.exists()) return; // Ya se publicó este bloque hoy
+
+        // Publicar en el chat del día
+        db.ref('chat/' + hoy).push({
+            autor: '🤖 UrbanMov',
+            texto: mensaje.texto,
+            hora: ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+        });
+
+        // Marcar como publicado
+        db.ref('chat_bot/' + claveBloque).set(true);
+    });
+}
+
+// Ejecutar al cargar y cada 10 minutos
+publicarMensajeBot();
+setInterval(publicarMensajeBot, 600000);
+function guardarHistorial(key) {
+    let historial = JSON.parse(localStorage.getItem('historial_rutas') || '[]');
+    historial = historial.filter(k => k !== key);
+    historial.unshift(key);
+    if (historial.length > 3) historial = historial.slice(0, 3);
+    localStorage.setItem('historial_rutas', JSON.stringify(historial));
+}
+
+function mostrarHistorial() {
+    const historial = JSON.parse(localStorage.getItem('historial_rutas') || '[]');
+    const div = document.getElementById('historial-rutas');
+    if (historial.length === 0) return;
+    document.getElementById('sugerencias').style.display = 'none';
+    div.innerHTML = '<div style="font-size:11px;color:#aaa;padding:4px 6px;">Recientes</div>';
+    historial.forEach(key => {
+        if (!RUTAS[key]) return;
+        div.innerHTML += `<div class="hist-item" onclick="activarRuta('${key}')">
+            🕐 ${RUTAS[key].nombre}<br><span>${RUTAS[key].paradas}</span>
+        </div>`;
+    });
+    div.style.display = 'block';
+}
+function compartirRuta(red) {
+    const nombre = document.getElementById('info-nombre').textContent;
+    const link = 'https://carlossolisc7-netizen.github.io/Movitransportev1/mapa.html';
+    const texto = `🚌 Mira esta ruta en UrbanMov: ${nombre}\n${link}`;
+    
+    if (red === 'whatsapp') {
+        window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`);
+    } else {
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}&quote=${encodeURIComponent(texto)}`);
+    }
+}
+var tileLayer;
+var modoNocturno = false;
+var tileNocturno = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+var tileDia = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+
+function toggleNocturno() {
+    modoNocturno = !modoNocturno;
+    map.removeLayer(tileLayer);
+    tileLayer = L.tileLayer(modoNocturno ? tileNocturno : tileDia, {
+        attribution: '© CARTO'
+    }).addTo(map);
+    document.body.classList.toggle('dark', modoNocturno);
+    document.getElementById('btn-nocturno').textContent = modoNocturno ? 'Modo día' : 'Modo nocturno';
+    localStorage.setItem('modoOscuro', modoNocturno ? '1' : '0');
+
+    const isDark = modoNocturno;
+    document.querySelectorAll('#panel-perfil, #panel-chat, #panel-reporte, #panel-actualizaciones, #panel-privacidad').forEach(el => {
+        el.style.background = isDark ? '#1e1e1e' : 'white';
+    });
+}
+
+const horaAuto = new Date().getHours();
+const prefOscuro = localStorage.getItem('modoOscuro');
+if (prefOscuro === '1' || (prefOscuro === null && (horaAuto >= 20 || horaAuto < 6))) {
+    setTimeout(() => toggleNocturno(), 1000);
+}
+function navHome() {
+    cerrarTodo();
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelector('.nav-item').classList.add('active');
+}
+// SELECTOR DE AVATAR
+function abrirSelectorAvatar() {
+    const avatares = [1,2,3,4,5,6,7];
+    let html = `<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;" onclick="this.remove()">
+        <div style="background:white;border-radius:20px;padding:20px;width:85%;max-width:360px;" onclick="event.stopPropagation()">
+            <div style="font-weight:800;color:#002e5d;font-size:16px;margin-bottom:14px;text-align:center;">Elige tu avatar</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">`;
+    avatares.forEach(n => {
+        html += `<img src="avatar${n}.jpeg" onclick="seleccionarAvatar(${n})" style="width:100%;aspect-ratio:1;border-radius:50%;object-fit:cover;cursor:pointer;border:3px solid transparent;" id="av-opt-${n}">`;
+    });
+    html += `</div><button onclick="this.closest('div[style*=fixed]').remove()" style="width:100%;margin-top:14px;padding:10px;background:#f0f2f5;border:none;border-radius:10px;font-weight:700;cursor:pointer;">Cancelar</button></div></div>`;
+    document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function seleccionarAvatar(n) {
+    localStorage.setItem('urbanmov_avatar', n);
+    document.getElementById('perfil-avatar-img').src = `avatar${n}.jpeg`;
+    const headerAv = document.getElementById('header-avatar');
+    if (headerAv) headerAv.style.backgroundImage = `url('avatar${n}.jpeg')`;
+    document.querySelector('div[style*="fixed"][style*="9999"]')?.remove();
+}
+
+function cargarAvatar() {
+    const n = localStorage.getItem('urbanmov_avatar') || 1;
+    const img = document.getElementById('perfil-avatar-img');
+    if (img) img.src = `avatar${n}.jpeg`;
+    const headerAv = document.getElementById('header-avatar');
+    if (headerAv) headerAv.style.backgroundImage = `url('avatar${n}.jpeg')`;
+}
+function abrirCorreccionRuta() {
+    const key = document.getElementById('btn-corregir-ruta').getAttribute('data-ruta');
+    const ruta = RUTAS[key];
+    const tipo = prompt(`¿Qué está mal en la ruta "${ruta.nombre}"?\n\n1. La ruta no pasa por aquí\n2. Falta una calle o tramo\n3. El horario está mal\n4. Otro problema\n\nEscribe el número:`);
+    if (!tipo) return;
+    const opciones = { '1': 'Ruta incorrecta', '2': 'Tramo faltante', '3': 'Horario incorrecto', '4': 'Otro' };
+    const detalle = prompt('Describe el problema con más detalle (opcional):') || '';
+    const hoy = new Date().toISOString().slice(0, 10);
+    db.ref('correcciones_rutas').push({
+        ruta: key,
+        nombre_ruta: ruta.nombre,
+        tipo: opciones[tipo] || 'Otro',
+        detalle: detalle,
+        fecha: hoy,
+        hora: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+    });
+    alert('¡Gracias! Tu reporte ayuda a mejorar las rutas.');
+}
+function cerrarInfoRuta() {
+    document.getElementById('info-ruta').style.display = 'none';
+    document.getElementById('btn-corregir-ruta').style.display = 'none';
+    if (lineaActiva) map.removeLayer(lineaActiva);
+    if (window.busMarkers) window.busMarkers.forEach(m => map.removeLayer(m));
+    if (busInterval) clearInterval(busInterval);
+}
+function ocultarCompartir() {
+    document.getElementById('info-ruta').style.display = 'none';
+    document.getElementById('btns-compartir').style.display = 'none';
+}
+// PUNTOS DE INTERÉS
+const POI = [
+    { nombre: "Zócalo de Puebla", lat: 19.043738, lng: -98.198109, img: "zócalopuebla3D.png", desc: "Centro histórico de Puebla" },
+    { nombre: "Estadio Cuauhtémoc", lat: 19.077913, lng: -98.164341, img: "estadiocuauhtémoc3D.png", desc: "Estadio del Club Puebla" },
+    { nombre: "CAPU", lat: 19.073435, lng: -98.204544, img: "capupuebla3D.png", desc: "Central de Autobuses de Puebla" },
+    { nombre: "Plaza Dorada", lat: 19.028022, lng: -98.202778, img: "plazadorada3D.png", desc: "Centro comercial" },
+    { nombre: "Estrella de Puebla", lat: 19.034452, lng: -98.232293, img: "estrelladepuebla3D.png", desc: "Rueda de la fortuna más alta de México" },
+{ nombre: "Aeropuerto de Puebla", lat: 19.163814, lng: -98.376089, img: "aeropuertopuebla3D.png", desc: "Aeropuerto Internacional Hermanos Serdán" },
+    { nombre: "Cablebús Puebla", lat: 19.0305, lng: -98.2365, img: "cablebus.png", desc: "Próximamente · 9 estaciones · En construcción" }
+];
+
+function calcularDistancia(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+    return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+}
+
+function mostrarInfoPOI(poi) {
+    if (lineaCaminata) { map.removeLayer(lineaCaminata); lineaCaminata = null; }
+
+    // Panel de info
+    let rutasCercanas = '';
+    Object.keys(RUTAS).forEach(key => {
+        const ruta = RUTAS[key];
+        const coords = ruta.coords;
+        let minDist = Infinity;
+        coords.forEach(c => {
+            const d = calcularDistancia(poi.lat, poi.lng, c[0], c[1]);
+            if (d < minDist) minDist = d;
+        });
+        if (minDist < 1000) {
+            rutasCercanas += `<div style="background:#f0f4ff;border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px;">
+                <span style="font-weight:700;color:#002e5d;">${ruta.nombre}</span><br>
+                <span style="color:#888;">A ${minDist}m de este lugar</span>
+            </div>`;
+        }
+    });
+
+    if (!rutasCercanas) rutasCercanas = '<p style="color:#aaa;font-size:12px;">No hay rutas registradas cerca</p>';
+
+    // Caminata desde tu ubicación
+    let caminataHTML = '';
+    if (miLatActual && miLngActual) {
+        const dist = calcularDistancia(miLatActual, miLngActual, poi.lat, poi.lng);
+        const mins = Math.round(dist / 80);
+        caminataHTML = `<div style="background:#fff3ec;border-left:3px solid #ff5a00;border-radius:0 8px 8px 0;padding:10px;margin-bottom:12px;font-size:12px;">
+            <b style="color:#ff5a00;">Tu ubicación</b><br>
+            Estás a <b>${dist}m</b> — aprox. <b>${mins} min</b> caminando
+        </div>`;
+        lineaCaminata = L.polyline([[miLatActual, miLngActual], [poi.lat, poi.lng]], {
+            color: '#ff5a00', weight: 3, dashArray: '6,8', opacity: 0.8
+        }).addTo(map);
+        map.fitBounds([[miLatActual, miLngActual], [poi.lat, poi.lng]], { padding: [60, 60] });
+    } else {
+        map.setView([poi.lat, poi.lng], 16);
+    }
+
+    const panel = document.createElement('div');
+    panel.id = 'panel-poi';
+    panel.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:white;border-radius:20px 20px 0 0;padding:20px;z-index:3000;box-shadow:0 -4px 20px rgba(0,0,0,0.2);max-height:60vh;overflow-y:auto;';
+    panel.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <img src="${poi.img}" style="width:40px;height:40px;object-fit:contain;">
+                <div>
+                    <div style="font-weight:900;color:#002e5d;font-size:16px;">${poi.nombre}</div>
+                    <div style="font-size:11px;color:#888;">${poi.desc}</div>
+                </div>
+            </div>
+            <button onclick="cerrarPanelPOI()" style="background:#f0f0f0;border:none;width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;">✕</button>
+        </div>
+        ${caminataHTML}
+        <div style="font-weight:800;color:#002e5d;font-size:12px;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Rutas cercanas</div>
+        ${rutasCercanas}
+    `;
+    document.getElementById('panel-poi')?.remove();
+    document.body.appendChild(panel);
+}
+
+function cerrarPanelPOI() {
+    document.getElementById('panel-poi')?.remove();
+    if (lineaCaminata) { map.removeLayer(lineaCaminata); lineaCaminata = null; }
+}
+function abrirNoticias() {
+    cerrarTodo();
+    document.getElementById('panel-noticias').style.bottom = '0';
+    cargarNoticias();
+}
+function cerrarNoticias() {
+    document.getElementById('panel-noticias').style.bottom = '-100%';
+}
+function cargarNoticias() {
+    const cont = document.getElementById('noticias-carrusel');
+    const dots = document.getElementById('noticias-dots');
+    db.ref('noticias').orderByChild('fecha_ts').limitToLast(10).once('value', (snap) => {
+        cont.innerHTML = '';
+        dots.innerHTML = '';
+        if (!snap.exists()) {
+            cont.innerHTML = '<div style="width:100%;display:flex;align-items:center;justify-content:center;color:#aaa;padding:40px;">Sin noticias por ahora</div>';
+            return;
+        }
+        const items = [];
+        snap.forEach(child => items.unshift(child.val()));
+        items.forEach((n, i) => {
+            cont.innerHTML += `
+                <div style="min-width:100%;scroll-snap-align:start;padding:20px;overflow-y:auto;">
+                    ${n.imagen ? `<img src="${n.imagen}" style="width:100%;border-radius:14px;margin-bottom:14px;object-fit:cover;max-height:240px;">` : ''}
+                    <div style="font-weight:800;color:#002e5d;font-size:16px;margin-bottom:6px;">${n.titulo}</div>
+                    <div style="font-size:14px;color:#555;line-height:1.5;">${n.texto}</div>
+                    <div style="font-size:11px;color:#aaa;margin-top:10px;">${n.fecha}</div>
+                </div>`;
+            dots.innerHTML += `<div style="width:6px;height:6px;border-radius:50%;background:${i===0?'#ff5a00':'#ddd'};"></div>`;
+        });
+    });
+}
+function publicarNoticia() {
+    const clave = prompt("Contraseña de administrador:");
+    if (clave !== "urbanmov2026") { alert("Contraseña incorrecta"); return; }
+    const titulo = prompt("Título de la noticia:");
+    if (!titulo) return;
+    const texto = prompt("Texto de la noticia:");
+    if (!texto) return;
+    const imagen = prompt("URL de imagen (opcional, deja vacío si no hay):") || "";
+    db.ref('noticias').push({
+        titulo: titulo,
+        texto: texto,
+        imagen: imagen,
+        fecha: new Date().toLocaleDateString('es-MX'),
+        fecha_ts: Date.now()
+    });
+    alert("Noticia publicada");
+    cargarNoticias();
+}
+    </script>
+    <div id="panel-noticias" style="position:fixed;bottom:-100%;left:0;right:0;background:white;border-radius:20px 20px 0 0;padding:0;z-index:3000;transition:0.4s;box-shadow:0 -4px 20px rgba(0,0,0,0.2);height:75vh;overflow:hidden;display:flex;flex-direction:column;">
+    <div style="background:linear-gradient(135deg,#002e5d,#ff5a00);padding:20px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <h3 style="color:white;margin:0;font-size:18px;">Noticias UrbanMov</h3>
+            <span style="color:rgba(255,255,255,0.8);font-size:12px;">Avisos oficiales</span>
+        </div>
+        <div style="display:flex;gap:8px;">
+            <button onclick="publicarNoticia()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer;">+</button>
+            <button onclick="cerrarNoticias()" style="background:rgba(255,255,255,0.2);border:none;color:white;width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer;">✕</button>
+        </div>
+    </div>
+    <div id="noticias-carrusel" style="flex:1;overflow-x:auto;display:flex;scroll-snap-type:x mandatory;"></div>
+    <div id="noticias-dots" style="display:flex;justify-content:center;gap:6px;padding:12px;"></div>
+</div>
+</body>
+</html>
